@@ -1,5 +1,5 @@
 from beanie import Document
-from pydantic import BaseModel, EmailStr
+from pydantic import EmailStr
 from typing import Optional
 from datetime import datetime
 

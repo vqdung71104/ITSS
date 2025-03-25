@@ -17,7 +17,7 @@ yarn add <dependencies> -W
 ```sh
 cd backend
 docker compose up -d
-uvicorn app.main:app --reload
+python app/main.py
 ```
 - Fix ImportError: email-validator is not installed, run pip install pydantic[email]
 ```sh
