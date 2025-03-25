@@ -1,0 +1,24 @@
+# ITSS PROJECT
+
+### FRONTEND
+```sh
+cd frontend
+yarn dev
+```
+
+### BACKEND
+```sh
+cd backend
+docker compose up -d
+uvicorn app.main:app --reload
+```
+- Fix ImportError: email-validator is not installed, run pip install pydantic[email]
+```sh
+pip install 'pydantic[email]'
+```
+
+- Open: http://127.0.0.1:8000/docs
+
+### DATABASE
+- MongoDB WebUI: http://127.0.0.1:8081/
+- Credential: root - password
