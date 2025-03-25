@@ -1,12 +1,19 @@
 # ITSS PROJECT
 
 ### FRONTEND
+- Yarn, React, Tailwind
 ```sh
 cd frontend
 yarn dev
 ```
 
+- Install dependencies, using this command:
+```sh
+yarn add <dependencies> -W
+```
+
 ### BACKEND
+- FastAPI, MongoDB
 ```sh
 cd backend
 docker compose up -d
