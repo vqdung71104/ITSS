@@ -1,9 +1,13 @@
 # ITSS PROJECT
 
+### Requirements
+- Python, Yarn, Docker, Docker Compose
+
 ### FRONTEND
 - Yarn, React, Tailwind
 ```sh
 cd frontend
+yarn install # For the first time
 yarn dev
 ```
 
@@ -16,6 +20,10 @@ yarn add <dependencies> -W
 - FastAPI, MongoDB
 ```sh
 cd backend
+python3 -m venv venv #Or python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
 docker compose up -d
 python app/main.py
 ```
