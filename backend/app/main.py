@@ -32,6 +32,7 @@ class FastAPIApp:
   def include_routers(self):
     self.app.include_router(user_routes.router)
 
-if __name__ == "__main__":
-  app_instance = FastAPIApp().app
+app_instance = FastAPIApp().app
+
+if __name__ == "__main__":  
   uvicorn.run("main:app_instance", host=env.HOST, port=env.PORT, reload=True)
