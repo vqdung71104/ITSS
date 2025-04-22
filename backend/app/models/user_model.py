@@ -1,14 +1,19 @@
-from beanie import Document
+from beanie import Document, Link
 from pydantic import EmailStr
-from typing import Optional
-from datetime import datetime
+from typing import List, Optional
+
 
 class User(Document):
-  username: str
-  email: EmailStr
-  password: str
-  created_at: datetime = datetime.utcnow()
-  is_active: bool = True
+    HoDem: str
+    Ten: str
+    email: EmailStr
+    role: str
+    group_id: Optional[Link["Group"]] 
+    tasks: Optional[List[Link["Task"]]]
+    contributions: Optional[str]
 
-  class Settings:
-    collection = "users" 
+    class Settings:
+        name = "users"
+
+from .group_model import Group
+from .task_model import Task
