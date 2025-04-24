@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import Optional
 from bson import Regex
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from models.user_model import User
 from outh2 import get_current_user, get_password_hash, verify_password
@@ -103,3 +103,36 @@ async def search_users(
         "email": user.email,
         "role": user.role
     }
+
+#tìm kiếm sinh viên theo nhóm
+@router.get('/students-by-group/{group_id}')
+async def get_students_by_group(group_id: str = Path(..., description="Group ID")):
+    students = await User.find({
+        "role": "student",
+        "group_id": group_id
+    }).to_list()
+    return [
+        {
+            "ho_ten": student.ho_ten,
+            "email": student.email,
+            "role": student.role
+        }
+        for student in students
+    ]
+
+#tìm kiếm sinh viên theo dự án
+@router.get('/students-by-project/{project_id}')
+async def get_students_by_project(project_id: str = Path(..., description="Project ID")):
+    students = await User.find(
+        {"role": "student",
+        "project_id": project_id}
+    ).to_list()
+    return [
+        {
+            "ho_ten": student.ho_ten,
+            "email": student.email,
+            "role": student.role
+        }
+        for student in students
+    ]
+    
