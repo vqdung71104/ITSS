@@ -6,7 +6,7 @@ class UserCreate(BaseModel):
   Ten: str
   email: EmailStr
   password: str
-  role: str = Literal["student", "mentor", "admin"]
+  role: Literal["student", "mentor", "admin"]
   class Config:
     from_attributes = True
   
@@ -15,18 +15,9 @@ class UserLogin(BaseModel):
   password: str
   class Config:
     from_attributes = True
-
-class UserResponse(BaseModel):
-  id: str
-  HoDem: str
-  Ten: str
-  email: EmailStr
-  role: str
-  class Config:
-    from_attributes = True
   
 class Token(BaseModel):
-  acess_token: str
+  access_token: str
   token_type: str = "bearer"
   class Config:
     from_attributes = True
