@@ -11,7 +11,7 @@ class Project(Document):
     groups: Optional[List[Link["Group"]]]
 
     class Settings:
-        name = "projects"
+        collection = "projects"
         
 from .group_model import Group
 from .user_model import User

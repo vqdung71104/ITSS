@@ -9,7 +9,7 @@ class Group(Document):
     allTasks: Optional[List[Link["Task"]]]
     
     class Settings:
-        name = "groups"
+        collection = "groups"
         
 from .project_model import Project
 from .task_model import Task
