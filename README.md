@@ -21,7 +21,7 @@ yarn add <dependencies> -W
 ```sh
 cd backend
 python3 -m venv venv #Or python -m venv venv
-source venv/bin/activate
+source venv/bin/activate (win: .\venv\Scripts\Activate.ps1)
 pip install -r requirements.txt
 
 docker compose up -d
