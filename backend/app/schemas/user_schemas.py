@@ -15,6 +15,14 @@ class UserLogin(BaseModel):
   password: str
   class Config:
     from_attributes = True
+
+class UserResponse(BaseModel):
+  HoDem: str
+  Ten: str
+  email: EmailStr
+  role: str
+  class Config:
+    from_attributes = True
   
 class Token(BaseModel):
   access_token: str
