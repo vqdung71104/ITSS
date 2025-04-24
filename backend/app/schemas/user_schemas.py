@@ -1,13 +1,36 @@
+from typing import Literal, Optional
 from pydantic import BaseModel, EmailStr
-from datetime import datetime
 
 class UserCreate(BaseModel):
-  username: str
+  HoDem: str
+  Ten: str
   email: EmailStr
   password: str
+  role: Literal["student", "mentor", "admin"]
+  class Config:
+    from_attributes = True
+  
+class UserLogin(BaseModel):
+  email: EmailStr
+  password: str
+  class Config:
+    from_attributes = True
 
 class UserResponse(BaseModel):
-  id: str
-  username: str
+  ho_ten: str
   email: EmailStr
-  created_at: datetime
+  role: str
+  class Config:
+    from_attributes = True
+  
+class Token(BaseModel):
+  access_token: str
+  token_type: str = "bearer"
+  class Config:
+    from_attributes = True
+  
+class TokenData(BaseModel):
+  email: Optional[str] = "None"
+  user_id: Optional[str] = "None"
+  class Config:
+    from_attributes = True
