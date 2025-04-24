@@ -12,7 +12,8 @@ class User(Document):
     group_id: Optional[Link["Group"]] 
     tasks: Optional[List[Link["Task"]]]
     contributions: Optional[str]
-
+    ho_ten: Optional[str] = None
+    
     class Settings:
         collection = "users"
 

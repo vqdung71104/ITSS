@@ -17,8 +17,7 @@ class UserLogin(BaseModel):
     from_attributes = True
 
 class UserResponse(BaseModel):
-  HoDem: str
-  Ten: str
+  ho_ten: str
   email: EmailStr
   role: str
   class Config:
