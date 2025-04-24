@@ -11,7 +11,7 @@ class Evaluation(Document):
 
 
     class Settings:
-        name = "evaluations"
+        collection = "evaluations"
 
 
 from .project_model import Project
