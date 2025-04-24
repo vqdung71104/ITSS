@@ -11,7 +11,7 @@ import logging
 
 async def init_db():
   try:
-    client = AsyncIOMotorClient(env.MONGO_URI)
+    client = AsyncIOMotorClient(f"{env.MONGO_URI}?authSource=admin")
     db = client[env.DATABASE_NAME]
     await init_beanie(database=db, document_models=[User,Task, Project,Group,Evaluation])  
     logging.info("Connected to MongoDB")
