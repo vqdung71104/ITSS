@@ -15,7 +15,7 @@ class Task(Document):
 
     
     class Settings:
-        name = "tasks"
+        collection = "tasks"
         
 
 from .group_model import Group
