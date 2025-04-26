@@ -6,14 +6,15 @@ from models.task_model import Task
 from models.project_model import Project
 from models.group_model import Group
 from models.evaluation_model import Evaluation
+from models.report_model import Report
 from pymongo.errors import OperationFailure
 import logging
 
 async def init_db():
-  try:
-    client = AsyncIOMotorClient(f"{env.MONGO_URI}?authSource=admin")
-    db = client[env.DATABASE_NAME]
-    await init_beanie(database=db, document_models=[User,Task, Project,Group,Evaluation])  
-    logging.info("Connected to MongoDB")
-  except OperationFailure as e:
-    logging.error("Connect fail: %s", e)
+    try:
+        client = AsyncIOMotorClient(f"{env.MONGO_URI}?authSource=admin")
+        db = client[env.DATABASE_NAME]
+        await init_beanie(database=db, document_models=[User, Task, Project, Group, Evaluation, Report])  
+        logging.info("Connected to MongoDB")
+    except OperationFailure as e:
+        logging.error("Connect fail: %s", e)
