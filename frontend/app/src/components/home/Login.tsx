@@ -1,17 +1,38 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-
+import axiosInstance from "../../axios-config"; // Import axios instance
 const Login = ({ onClose }: any) => {
   const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
   const [error, setError] = useState(""); // State for error message
   const [email, setEmail] = useState(""); // State for email input
   const [password, setPassword] = useState(""); // State for password input
-
   function handleLogin() {
-    return true;
-    // Call the API to login
-    // axios.post('http://localhost:8000/api/login', {
+    const response = axiosInstance
+      .post("/users/login", {
+        username: "user@example.com",
+        password: "string",
+      })
+      .then((res) => {
+        // Handle success
+        localStorage.setItem("token", res.data.token);
+        localStorage.setItem("accountRole", res.data.account.role);
+        localStorage.setItem("userId", res.data.account.userId);
+        const role = res.data.account.role;
+        if (role === "admin") {
+          navigate("/");
+        } else if (role === "student") {
+          navigate("/");
+        } else {
+          navigate("/"); //mentor dashboard
+        }
+      })
+      .catch((error) => {
+        // Handle error
+        console.error("Login failed:", error);
+        setError("Invalid email or password"); // Set error message
+      });
+    console.log(response);
   }
 
   useEffect(() => {
