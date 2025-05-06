@@ -1,5 +1,8 @@
 {
   "compilerOptions": {
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "checkJs": false,
     "composite": true,
     "declarationMap": true,
     "emitDeclarationOnly": true,

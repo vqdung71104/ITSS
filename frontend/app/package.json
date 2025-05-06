@@ -4,5 +4,9 @@
   "private": true,
   "nx": {
     "name": "frontend"
+  },
+  "dependencies": {
+    "framer-motion": "^12.9.2",
+    "react-icons": "^5.5.0"
   }
 }
