@@ -3,7 +3,7 @@ from models.task_model import Task
 from models.group_model import Group
 from models.user_model import User
 from models.project_model import Project
-from schemas.task_schemas import TaskCreate, TaskResponse
+from schemas.task_schemas import TaskCreate, TaskResponse, PyObjectId
 from routes.user_routes import get_current_user
 from beanie import Link
 import logging
@@ -87,14 +87,42 @@ async def create_task(task: TaskCreate, current_user: User = Depends(get_current
 @router.get("/{group_id}", response_model=list[TaskResponse])
 async def get_tasks(group_id: str, current_user: User = Depends(get_current_user)):
     try:
-        group = await Group.get(group_id)
+        # Validate the group_id format
+        logger.info(f"Group ID: {group_id}")
+        try:
+            group_id_obj = PyObjectId.validate(group_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid group_id format")
+
+        # Fetch the group from the database
+        logger.info(f"Group ID Object: {group_id_obj}")
+        group = await Group.get(group_id_obj)
+        logger.info(f"Group: {group}")
         if not group:
             raise HTTPException(status_code=404, detail="Group not found")
-        if str(group.leaders.ref.id) != str(current_user.id):
+
+        # Check authorization (handle both Link and User)
+        leader_id = None
+        if isinstance(group.leaders, Link):
+            leader = await group.leaders.fetch()
+            leader_id = str(leader.id) if leader else None
+        elif isinstance(group.leaders, User):
+            leader_id = str(group.leaders.id)
+        if not leader_id or leader_id != str(current_user.id):
             raise HTTPException(status_code=403, detail="Not authorized")
 
-        tasks = await Task.find({"group.$id": group.id}).to_list()
+        # Fetch all tasks associated with the group
+        logger.info(f"Fetching tasks for group ID: {group_id_obj}")
+        tasks = await Task.find({"group.$id": group_id_obj}).to_list()
+        logger.info(f"Tasks found: {tasks}")
         
+        # If no tasks found, check group.allTasks for debugging
+        if not tasks:
+            logger.info(f"No tasks found for group ID: {group_id_obj}. Checking group.allTasks...")
+            group_tasks = await group.fetch_link("allTasks") or []
+            logger.info(f"Group.allTasks: {group_tasks}")
+
+        # Prepare the response
         task_responses = []
         for task in tasks:
             # Fetch related data
@@ -116,6 +144,7 @@ async def get_tasks(group_id: str, current_user: User = Depends(get_current_user
     except Exception as e:
         logger.error(f"Error getting tasks: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.put("/{task_id}", response_model=TaskResponse)
 async def update_task(task_id: str, task: TaskCreate, current_user: User = Depends(get_current_user)):
@@ -207,7 +236,15 @@ async def delete_task(task_id: str, current_user: User = Depends(get_current_use
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
 
-        group = await task.group.fetch()
+        # Fetch group if task.group is a Link, otherwise use it directly
+        group = None
+        if isinstance(task.group, Link):
+            group = await task.group.fetch()
+        elif isinstance(task.group, Group):
+            group = task.group
+        else:
+            raise HTTPException(status_code=404, detail="Group associated with task not found")
+
         if not group or str(group.leaders.ref.id) != str(current_user.id):
             raise HTTPException(status_code=403, detail="Not authorized")
 

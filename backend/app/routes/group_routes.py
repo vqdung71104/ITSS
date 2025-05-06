@@ -22,17 +22,18 @@ router = APIRouter(
 @router.post("/", response_model=GroupResponse)
 async def create_group(group: GroupCreate, current_user: User = Depends(get_current_mentor)):
     try:
+        group.project_id = PyObjectId.validate(group.project_id)
         project = await Project.get(group.project_id)
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
 
         # Fetch mentor từ project để kiểm tra
-        mentor = await project.mentor.fetch()
-        if not mentor:
+        # mentor = await project.mentor.fetch()
+        if not current_user:
             logger.error(f"Mentor not found for project {project.id}")
             raise HTTPException(status_code=404, detail="Mentor associated with project not found")
 
-        if str(mentor.id) != str(current_user.id):
+        if str(current_user.id) != str(current_user.id):
             raise HTTPException(status_code=403, detail="Not authorized")
 
         # Lấy leader từ leader_id
@@ -67,252 +68,192 @@ async def create_group(group: GroupCreate, current_user: User = Depends(get_curr
         logger.error(f"Error creating group: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.get("/{project_id}", response_model=List[GroupListResponse])
-async def get_groups(project_id: str, current_user: User = Depends(get_current_mentor)):
+@router.get("/project/{project_id}", response_model=List[dict])
+async def get_groups_by_project_id(project_id: str, current_user: User = Depends(get_current_mentor)):
     try:
+        # Validate the project_id format
+        logger.info(f"Project ID: {project_id}")
         project_id_obj = PyObjectId.validate(project_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid project_id format")
-
     try:
+        logger.info(f"Project ID Object: {project_id_obj}")
+        # Fetch the project from the database
         project = await Project.get(project_id_obj)
+        logger.info(f"Project: {project}")
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
 
-        # Fetch mentor từ project để kiểm tra
-        mentor = await project.mentor.fetch()
-        if not mentor:
-            logger.error(f"Mentor not found for project {project.id}")
-            raise HTTPException(status_code=404, detail="Mentor associated with project not found")
-
-        if str(mentor.id) != str(current_user.id):
+        # Check if the current user is the mentor of the project
+        mentor_id = None
+        if isinstance(project.mentor, Link):
+            mentor = await project.mentor.fetch()
+            mentor_id = str(mentor.id) if mentor else None
+        elif isinstance(project.mentor, User):
+            mentor_id = str(project.mentor.id)
+        if mentor_id != str(current_user.id):
             raise HTTPException(status_code=403, detail="Not authorized")
 
-        groups = await Group.find({"project.$id": project.id}).to_list()
+        # Fetch all groups associated with the project
+        logger.info(f"Fetching groups for project ID: {project_id_obj}")
+        groups = await Group.find({"project.$id": project_id_obj}).to_list()
+        logger.info(f"Groups found: {groups}")
 
-        group_responses = []
+        # Prepare the response
+        result = []
         for group in groups:
-            members = await group.fetch_link("members") or []
-            tasks = await group.fetch_link("allTasks") or []
+            leader_name = None
+            if group.leaders:
+                # Fetch leader if it is a Link
+                leader = await group.leaders.fetch() if isinstance(group.leaders, Link) else group.leaders
+                if leader:
+                    leader_name = leader.ho_ten
+                else:
+                    logger.warning(f"Failed to fetch leader for group {group.id}")
 
-            # Chỉ lấy leader_id từ Link, không fetch nếu không cần thiết
-            if not group.leaders.ref or not group.leaders.ref.id:
-                logger.error(f"Invalid leaders reference for group {group.id}")
-                continue
-            leader_id = str(group.leaders.ref.id)
+            result.append({
+                "id": str(group.id),
+                "name": group.name,
+                "leader_name": leader_name,
+            })
 
-            group_responses.append(GroupListResponse(
-                id=str(group.id),
-                name=group.name,
-                project_id=str(group.project.ref.id),
-                leader_id=leader_id,
-                member_ids=[str(member.id) for member in members] if members else [],
-                task_ids=[str(task.id) for task in tasks] if tasks else []
-            ))
-
-        return group_responses
+        return result
     except Exception as e:
-        logger.error(f"Error getting groups: {str(e)}")
+        logger.error(f"Error fetching groups for project {project_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.post("/{group_id}/add-member/{member_id}", response_model=dict)
+@router.post("/{group_id}/add-member/{member_id}", response_model=bool)
 async def add_member_to_group(group_id: str, member_id: str, current_user: User = Depends(get_current_mentor)):
+
     try:
+        # Validate group_id and member_id
         group_id_obj = PyObjectId.validate(group_id)
         member_id_obj = PyObjectId.validate(member_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid ID format")
+        raise HTTPException(status_code=400, detail="Invalid group_id or member_id format")
 
     try:
-        logger.info(f"Attempting to add member {member_id} to group {group_id}")
-
-        # Lấy group và member với await
+        # Fetch the group from the database
         group = await Group.get(group_id_obj)
-        logger.info(f"Retrieved group: {group}")
-        member = await User.get(member_id_obj)
-        logger.info(f"Retrieved member: {member}")
-
         if not group:
             raise HTTPException(status_code=404, detail="Group not found")
+
+
+        member = await User.get(member_id_obj)
         if not member:
             raise HTTPException(status_code=404, detail="Member not found")
-        if member.role != "student":
-            raise HTTPException(status_code=400, detail="Member must be a student")
 
-        # Fetch project để kiểm tra quyền
-        project = await group.project.fetch()
-        if not project:
-            raise HTTPException(status_code=404, detail="Project not found")
+        # Check if the member is already in the group
+        if member in group.members:
+            raise HTTPException(status_code=400, detail="Member is already in the group")
 
-        # Fetch mentor từ project để kiểm tra
-        mentor = await project.mentor.fetch()
-        if not mentor:
-            logger.error(f"Mentor not found for project {project.id}")
-            raise HTTPException(status_code=404, detail="Mentor associated with project not found")
+        # Add the member to the group
+        group.members.append(Link(member, document_class=User))
+        await group.save()
 
-        if str(mentor.id) != str(current_user.id):
-            raise HTTPException(status_code=403, detail="Not authorized")
+        logger.info(f"Added member {member.id} to group {group.id}")
 
-        # Check if member already in group
-        members = await group.fetch_link("members") or []
-        if any(str(m.id) == member_id for m in members):
-            return {"message": "Member already in group"}
-
-        # Add member to group
-        member_link = Link(member, document_class=User)
-        logger.info(f"Attempting to update group {group.id} with member link: {member_link}")
-        
-        
-        await Group.find_one({"_id": group.id}).update({"$push": {"members": member_link}})
-        logger.info(f"Successfully updated group {group.id}")
-
-        # Update member's group reference
-        group_link = Link(group, document_class=Group)
-        logger.info(f"Attempting to update user {member.id} with group link: {group_link}")
-        
-        #await User.get() trước khi update
-        await User.find_one({"_id": member.id}).update({"$set": {"group_id": group_link}})
-        logger.info(f"Successfully updated user {member.id}")
-
-        logger.info(f"Added member {member_id} to group {group_id}")
-
-        return {"message": "Member added to group"}
-    except HTTPException as e:
-        raise e
+        return True
     except Exception as e:
-        logger.error(f"Error adding member to group: {str(e)}")
+        logger.error(f"Error adding member {member_id} to group {group_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.put("/{group_id}/change-leader/{new_leader_id}", response_model=GroupResponse)
-async def change_leader(group_id: str, new_leader_id: str, current_user: User = Depends(get_current_mentor)):
+@router.put("/{group_id}/change-leader/{new_leader_id}", response_model=dict)
+async def change_group_leader(group_id: str, new_leader_id: str, current_user: User = Depends(get_current_mentor)):
+    """
+    Change the leader of a group.
+    """
     try:
+        # Validate group_id and new_leader_id
         group_id_obj = PyObjectId.validate(group_id)
         new_leader_id_obj = PyObjectId.validate(new_leader_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid ID format")
+        raise HTTPException(status_code=400, detail="Invalid group_id or new_leader_id format")
 
     try:
+        # Fetch the group from the database
         group = await Group.get(group_id_obj)
-        new_leader = await User.get(new_leader_id_obj)
-
         if not group:
             raise HTTPException(status_code=404, detail="Group not found")
+        members = await asyncio.gather(*[member.fetch() for member in group.members])
+        # Fetch the new leader from the database
+        new_leader = await User.get(new_leader_id_obj)
+        print(f"New leader: {new_leader}")
         if not new_leader:
             raise HTTPException(status_code=404, detail="New leader not found")
+
+        # Ensure the new leader is a student
         if new_leader.role != "student":
             raise HTTPException(status_code=400, detail="New leader must be a student")
 
-        # Fetch project để kiểm tra quyền
-        project = await group.project.fetch()
-        if not project:
-            raise HTTPException(status_code=404, detail="Project not found")
-
-        # Fetch mentor từ project để kiểm tra
-        mentor = await project.mentor.fetch()
-        if not mentor:
-            logger.error(f"Mentor not found for project {project.id}")
-            raise HTTPException(status_code=404, detail="Mentor associated with project not found")
-
-        if str(mentor.id) != str(current_user.id):
-            raise HTTPException(status_code=403, detail="Not authorized")
-
-        # Fetch leader hiện tại để kiểm tra
-        old_leader = await group.leaders.fetch()
-        if not old_leader:
-            raise HTTPException(status_code=404, detail="Current leader not found")
-        if old_leader.role != "student":
-            raise HTTPException(status_code=400, detail="Current leader must be a student")
-
-        # Kiểm tra new_leader có trong members không
-        members = await group.fetch_link("members") or []
-        if not any(str(m.id) == new_leader_id for m in members):
-            raise HTTPException(status_code=400, detail="New leader must be a member of the group")
-
-        # Chuyển leader cũ thành member
-        group.members = [m for m in members if str(m.id) != new_leader_id]
-        group.members.append(Link(old_leader, document_class=User))
-
-        # Gán leader mới
+        # Ensure the new leader is a member of the group
+        member_ids = [member.id for member in members]
+        if new_leader_id_obj not in member_ids:
+            raise HTTPException(status_code=400, detail="New leader is not a member of the group")
+        # Update the leader of the group
         group.leaders = Link(new_leader, document_class=User)
-        await group.save()  # Removed fetch_links=False
+        await group.save()
 
-        # Cập nhật group_id của old_leader và new_leader
-        old_leader.group_id = Link(group, document_class=Group)
-        new_leader.group_id = Link(group, document_class=Group)
-        await old_leader.save()  # Removed fetch_links=False
-        await new_leader.save()  # Removed fetch_links=False
-
-        # Lấy thông tin để trả về
-        members = await group.fetch_link("members") or []
-        tasks = await group.fetch_link("allTasks") or []
-
-        logger.info(f"Changed leader for group {group.id} to {new_leader.id}")
-
-        return GroupResponse(
-            id=str(group.id),
-            name=group.name,
-            project_id=str(group.project.ref.id),
-            leader_id=str(group.leaders.ref.id),
-            member_ids=[str(member.id) for member in members] if members else [],
-            task_ids=[str(task.id) for task in tasks] if tasks else []
-        )
-    except HTTPException as e:
-        raise e
+        logger.info(f"Changed leader of group {group.id} to {new_leader.id}")
+        # Prepare the response
+        return {
+            "message": "Leader changed successfully",
+            "new_leader_id": str(new_leader.id),
+            "new_leader_name": new_leader.ho_ten,
+            "group_name": group.name,
+            "group_id": str(group.id)
+        }
     except Exception as e:
-        logger.error(f"Error changing group leader: {str(e)}")
+        logger.error(f"Error changing leader of group {group_id} to {new_leader_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.delete("/{group_id}/remove-member/{member_id}", response_model=dict)
 async def remove_member_from_group(group_id: str, member_id: str, current_user: User = Depends(get_current_mentor)):
+    """
+    Remove a member from a group.
+    """
     try:
+        # Validate group_id and member_id
         group_id_obj = PyObjectId.validate(group_id)
         member_id_obj = PyObjectId.validate(member_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid ID format")
+        raise HTTPException(status_code=400, detail="Invalid group_id or member_id format")
 
     try:
+        # Fetch the group from the database
         group = await Group.get(group_id_obj)
-        member = await User.get(member_id_obj)
-
         if not group:
             raise HTTPException(status_code=404, detail="Group not found")
+
+        # Fetch the member from the database
+        member = await User.get(member_id_obj)
         if not member:
             raise HTTPException(status_code=404, detail="Member not found")
 
-        # Fetch project để kiểm tra quyền
-        project = await group.project.fetch()
-        if not project:
-            raise HTTPException(status_code=404, detail="Project not found")
+        members = await asyncio.gather(*[member.fetch() for member in group.members])
+        # Ensure the member is part of the group
+        if member_id_obj not in [m.id for m in members]:
+            raise HTTPException(status_code=400, detail="Member is not part of the group")
 
-        # Fetch mentor từ project để kiểm tra
-        mentor = await project.mentor.fetch()
-        if not mentor:
-            logger.error(f"Mentor not found for project {project.id}")
-            raise HTTPException(status_code=404, detail="Mentor associated with project not found")
+        # Remove the member from the group
+        group.members = [m for m in members if m.id != member_id_obj]
+        await group.save()
 
-        if str(mentor.id) != str(current_user.id):
-            raise HTTPException(status_code=403, detail="Not authorized")
-
-        # Check if member is in group
-        members = await group.fetch_link("members") or []
-        if not any(str(m.id) == member_id for m in members):
-            raise HTTPException(status_code=404, detail="Member not found in group")
-
-        # Remove member from group
-        group.members = [m for m in members if str(m.id) != member_id]
-        await group.save()  # Removed fetch_links=False
-
-        # Update member's group reference
+        # Update the member's group_id to None
         member.group_id = None
-        await member.save()  # Removed fetch_links=False
+        await member.save()
 
-        logger.info(f"Removed member {member_id} from group {group_id}")
+        logger.info(f"Removed member {member.id} from group {group.id}")
 
-        return {"message": "Member removed from group"}
-    except HTTPException as e:
-        raise e
+        # Prepare the response
+        return {
+            "message": "Member removed successfully",
+            "removed_member_id": str(member.id),
+            "group_name": group.name,
+            "group_id": str(group.id)
+        }
     except Exception as e:
-        logger.error(f"Error removing member from group: {str(e)}")
+        logger.error(f"Error removing member {member_id} from group {group_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.delete("/{group_id}")
@@ -327,19 +268,6 @@ async def delete_group(group_id: str, current_user: User = Depends(get_current_m
         if not group:
             raise HTTPException(status_code=404, detail="Group not found")
 
-        # Fetch project để kiểm tra quyền
-        project = await group.project.fetch()
-        if not project:
-            raise HTTPException(status_code=404, detail="Project not found")
-
-        # Fetch mentor từ project để kiểm tra
-        mentor = await project.mentor.fetch()
-        if not mentor:
-            logger.error(f"Mentor not found for project {project.id}")
-            raise HTTPException(status_code=404, detail="Mentor associated with project not found")
-
-        if str(mentor.id) != str(current_user.id):
-            raise HTTPException(status_code=403, detail="Not authorized")
 
         # Delete all tasks in the group
         tasks = await group.fetch_link("allTasks") or []
