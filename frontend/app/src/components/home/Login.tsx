@@ -5,35 +5,8 @@ const Login = ({ onClose }: any) => {
   const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
   const [error, setError] = useState(""); // State for error message
-  const [email, setEmail] = useState(""); // State for email input
+  const [username, setUsername] = useState(""); // State for email input
   const [password, setPassword] = useState(""); // State for password input
-  function handleLogin() {
-    const response = axiosInstance
-      .post("/users/login", {
-        username: "user@example.com",
-        password: "string",
-      })
-      .then((res) => {
-        // Handle success
-        localStorage.setItem("token", res.data.token);
-        localStorage.setItem("accountRole", res.data.account.role);
-        localStorage.setItem("userId", res.data.account.userId);
-        const role = res.data.account.role;
-        if (role === "admin") {
-          navigate("/");
-        } else if (role === "student") {
-          navigate("/");
-        } else {
-          navigate("/"); //mentor dashboard
-        }
-      })
-      .catch((error) => {
-        // Handle error
-        console.error("Login failed:", error);
-        setError("Invalid email or password"); // Set error message
-      });
-    console.log(response);
-  }
 
   useEffect(() => {
     setIsVisible(true);
@@ -45,11 +18,51 @@ const Login = ({ onClose }: any) => {
       onClose();
     }, 300);
   };
-
   // Function to handle navigation to register
   const goToRegister = () => {
     handleClose();
     navigate("/register");
+  };
+  const handleLogin = async () => {
+    try {
+      // Gửi yêu cầu POST đến API /users/login
+      console.log(
+        "Logging in with email:",
+        username,
+        "and password:",
+        password
+      );
+      const formData = new URLSearchParams();
+      formData.append("username", username);
+      formData.append("password", password);
+      console.log("Form Data:", formData);
+      const response = await axiosInstance.post("/users/login", formData, {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      });
+      console.log("Response:", response);
+      // Kiểm tra phản hồi từ server
+      if (response.status === 200) {
+        // Lưu token hoặc thực hiện hành động sau khi đăng nhập thành công
+        console.log("Login successful:", response.data);
+        // Ví dụ: Lưu token vào localStorage
+        localStorage.setItem("token", response.data.token);
+        // Điều hướng đến trang chính
+        navigate("/dashboard");
+      }
+    } catch (error: any) {
+      // Xử lý lỗi và hiển thị thông báo
+      if (
+        error.response &&
+        error.response.data &&
+        error.response.data.message
+      ) {
+        setError(error.response.data.message);
+      } else {
+        setError("An error occurred. Please try again.");
+      }
+    }
   };
 
   return (
@@ -80,9 +93,9 @@ const Login = ({ onClose }: any) => {
           type="email"
           placeholder="Email"
           className="w-full mt-4 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          value={email}
+          value={username}
           onChange={(e) => {
-            setEmail(e.target.value);
+            setUsername(e.target.value);
             setError("");
           }} // Update email state on change
         />
@@ -102,7 +115,7 @@ const Login = ({ onClose }: any) => {
         {/* Login Button */}
         <button
           className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg mt-6 hover:bg-blue-600 transition duration-200"
-          onClick={handleLogin}
+          onClick={handleLogin} // Call handleLogin on button click
         >
           Login
         </button>

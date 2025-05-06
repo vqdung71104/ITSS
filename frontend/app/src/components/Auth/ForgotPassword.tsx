@@ -15,7 +15,7 @@ const ForgotPassword = () => {
 
   const API_PATH = import.meta.env.VITE_API_PATH;
 
-  const handleForgotPassword = async (e) => {
+  const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       const response = await axios.post(
@@ -26,26 +26,34 @@ const ForgotPassword = () => {
       if (response) {
         setReceivedCode(response.data.resetCode);
         setIsRequest(false);
-        setError("")
+        setError("");
       }
     } catch (err) {
-      if (err.response && err.response.data && err.response.data.Message) {
-        setError(err.response.data.Message);
+      if (
+        (err as any).response &&
+        (err as any).response.data &&
+        (err as any).response.data.Message
+      ) {
+        if (axios.isAxiosError(err) && err.response?.data?.Message) {
+          setError(err.response.data.Message);
+        } else {
+          setError("Unexpected error occurred");
+        }
       } else {
         setError("Unexpected error occurred");
       }
-    } 
+    }
   };
 
-  const handleResetPassword = async (e) => {
+  const handleResetPassword = async (e: any) => {
     e.preventDefault();
-    if(resetCode !== receivedCode) {
-        setError("Reset code do not match")
-        return;
+    if (resetCode !== receivedCode) {
+      setError("Reset code do not match");
+      return;
     }
-    if(newPassword !== confirmPassword){
-        setError('Password and confirm password do not match.')
-        return;
+    if (newPassword !== confirmPassword) {
+      setError("Password and confirm password do not match.");
+      return;
     }
     try {
       const response = await axios.post(`${API_PATH}/Auth/reset-password`, {
@@ -57,24 +65,24 @@ const ForgotPassword = () => {
       if (response) {
         navigate("/");
       }
-    } catch (err) {
+    } catch (err: any) {
       if (err.response && err.response.data && err.response.data.message) {
         setError(err.response.data.message);
-        if(err.response.data.message === "Reset code expired"){
-            try {
-                const response = await axios.post(
-                  `${API_PATH}/Auth/request-forgot-password`,
-                  { email }
-                );
-                console.log(response.data);
-                if (response) {
-                  setReceivedCode(response.data.resetCode);
-                  setIsRequest(false);
-                  setError("")
-                }
-              } catch {
-                setError("Failed to get new reset code")
-              }  
+        if (err.response.data.message === "Reset code expired") {
+          try {
+            const response = await axios.post(
+              `${API_PATH}/Auth/request-forgot-password`,
+              { email }
+            );
+            console.log(response.data);
+            if (response) {
+              setReceivedCode(response.data.resetCode);
+              setIsRequest(false);
+              setError("");
+            }
+          } catch {
+            setError("Failed to get new reset code");
+          }
         }
       } else {
         setError("Unexpected error occurred");
@@ -83,11 +91,11 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-red-50">
+    <div className="flex items-center justify-center min-h-screen bg-red-50 ">
       <div className="bg-white shadow-lg rounded-2xl p-8 w-full max-w-md border border-red-200">
         {isRequest ? (
           <div>
-            <h2 className="text-2xl font-bold text-red-500 mb-6 text-center">
+            <h2 className="text-2xl font-bold text-blue-500 mb-6 text-center ">
               Forgot Password
             </h2>
             {/* Show Error */}
@@ -112,7 +120,7 @@ const ForgotPassword = () => {
               </div>
               <button
                 type="submit"
-                className="w-full py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition duration-200"
+                className="w-full py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-red-600 transition duration-200"
               >
                 Get Reset Code
               </button>
@@ -133,9 +141,7 @@ const ForgotPassword = () => {
             {/* Show received code */}
             {receivedCode && (
               <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <p className="text-gray-700 mb-2 font-bold">
-                  Your reset code:
-                </p>
+                <p className="text-gray-700 mb-2 font-bold">Your reset code:</p>
                 <p className="text-blue-700 text-xl font-mono text-center">
                   {receivedCode}
                 </p>

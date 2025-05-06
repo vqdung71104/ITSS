@@ -26,7 +26,7 @@ const Register = () => {
     setIsVisible(true);
   }, []);
 
-  const handleChange = (e) => {
+  const handleChange = (e: any) => {
     const { name, value } = e.target;
     setFormData((prevState) => ({
       ...prevState,
@@ -61,8 +61,8 @@ const Register = () => {
       return;
     }
 
-    if(!/^0[0-9]{9}$/.test(formData.phoneNumber)){
-      setError("Phone number must start with 0 and be exactly 10 digits.")
+    if (!/^0[0-9]{9}$/.test(formData.phoneNumber)) {
+      setError("Phone number must start with 0 and be exactly 10 digits.");
       return;
     }
 
@@ -91,13 +91,13 @@ const Register = () => {
       };
 
       // Add role-specific fields based on the selected role
-      if (roleValue === 2) {
-        // Trainer
-        requestData.specialization = parseInt(formData.specialization);
-      }
+      // if (roleValue === 2) {
+      //   // Trainer
+      //   requestData.specialization = parseInt(formData.specialization);
+      // }
 
       // Send registration request to the API
-      console.log(requestData)
+      console.log(requestData);
       const response = await axios.post(
         `${API_PATH}/Auth/register`,
         requestData
@@ -112,7 +112,7 @@ const Register = () => {
           },
         });
       }
-    } catch (err) {
+    } catch (err: any) {
       // Handle errors from the API
       if (err.response && err.response.data) {
         if (err.response.data.message) {
@@ -135,19 +135,19 @@ const Register = () => {
     navigate("/login");
   };
 
-  // Show/hide role-specific fields based on selected role  
+  // Show/hide role-specific fields based on selected role
   const roleValue = parseInt(formData.role);
   const showSpecialization = roleValue === 2; // Trainer
 
   return (
-    <div className="min-h-screen  flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div
-        className={`bg-white p-8 rounded-lg shadow-lg w-20 max-w-sm mx-auto max-h-screen overflow-y-auto transform transition-transform duration-500 ${
+        className={`bg-white p-8 rounded-lg shadow-lg w-full max-w-md max-h-screen overflow-y-auto transform transition-transform duration-500 ${
           isVisible ? "translate-y-0" : "translate-y-[-20px]"
         }`}
       >
         {/* Title */}
-        <h2 className="text-2xl font-bold text-center text-red-500 mb-6">
+        <h2 className="text-2xl font-bold text-center text-blue-500 mb-6">
           Create Account
         </h2>
 
@@ -280,47 +280,18 @@ const Register = () => {
             required
           >
             <option value="">Select a role</option>
-            <option value="2">Trainer</option>
-            <option value="3">Member</option>
+            <option value="2">student</option>
+            <option value="3">mentor</option>
+            <option value="4">admin</option>
           </select>
         </div>
-
-        {/* Specialization - only for Trainer */}
-        {showSpecialization && (
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-1">
-              Specialization <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="specialization"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-              value={formData.specialization}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select a specialization</option>
-              <option value="1">Cardio</option>
-              <option value="2">Strength</option>
-              <option value="3">CrossFit</option>
-              <option value="4">Yoga</option>
-              <option value="5">Pilates</option>
-              <option value="6">Boxing</option>
-              <option value="7">Spinning</option>
-              <option value="8">Functional</option>
-              <option value="9">Dance</option>
-              <option value="10">PersonalTraining</option>
-              <option value="11">Recovery</option>
-              <option value="12">Multipurpose</option>
-            </select>
-          </div>
-        )}
 
         {/* Display error message */}
         {error && <div className="text-red-500 text-left mt-4">{error}</div>}
 
         {/* Register Button */}
         <button
-          className={`w-full bg-red-500 text-white px-4 py-2 rounded-lg mt-4 hover:bg-red-600 transition duration-200 ${
+          className={`w-full bg-blue-500 text-white px-4 py-2 rounded-lg mt-4 hover:bg-blue-600 transition duration-200 ${
             loading ? "opacity-70 cursor-not-allowed" : ""
           }`}
           onClick={handleRegister}
@@ -334,7 +305,7 @@ const Register = () => {
           Already have an account?{" "}
           <button
             onClick={goToLogin}
-            className="text-red-500 font-semibold hover:underline"
+            className="text-blue-500 font-semibold hover:underline"
           >
             Login
           </button>
