@@ -3,7 +3,8 @@ from models.task_model import Task
 from models.group_model import Group
 from models.user_model import User
 from models.project_model import Project
-from schemas.task_schemas import TaskCreate, TaskResponse, PyObjectId
+from schemas.task_schemas import TaskCreate, TaskResponse
+from schemas.pyobjectid_schemas import PyObjectId
 from routes.user_routes import get_current_user
 from beanie import Link
 import logging

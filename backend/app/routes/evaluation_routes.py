@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from models.evaluation_model import Evaluation
 from models.user_model import User
 from models.project_model import Project
-from schemas.evaluation_schemas import EvaluationCreate, EvaluationResponse, PyObjectId
+from schemas.evaluation_schemas import EvaluationCreate, EvaluationResponse
+from schemas.pyobjectid_schemas import PyObjectId
 from routes.user_routes import get_current_user
 from beanie import Link
 import logging

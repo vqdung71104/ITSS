@@ -3,6 +3,7 @@ from models.report_model import Report
 from models.task_model import Task
 from models.user_model import User
 from schemas.report_schemas import ReportCreate, ReportResponse
+from schemas.pyobjectid_schemas import PyObjectId
 from routes.user_routes import get_current_user
 from beanie import Link
 import logging

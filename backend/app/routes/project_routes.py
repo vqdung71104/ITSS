@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import Optional, List
 from models.project_model import Project
 from models.user_model import User
-from schemas.project_schemas import ProjectCreate, ProjectResponse, ProjectListResponse, PyObjectId
+from schemas.project_schemas import ProjectCreate, ProjectResponse, ProjectListResponse
+from schemas.pyobjectid_schemas import PyObjectId
 from routes.user_routes import get_current_mentor
 from beanie import Link
 from bson import ObjectId
