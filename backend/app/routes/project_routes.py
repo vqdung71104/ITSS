@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import Optional, List
+from schemas.user_schemas import UserResponse
+from schemas.group_schemas import GroupResponse
 from models.project_model import Project
 from models.user_model import User
 from schemas.project_schemas import ProjectCreate, ProjectResponse, ProjectListResponse
@@ -24,6 +26,7 @@ async def create_project(project: ProjectCreate, current_user: User = Depends(ge
     try:
         new_project = Project(
             title=project.title,
+            image=project.image,
             description=project.description,
             mentor=Link(current_user, document_class=User),
             groups=[]
@@ -33,8 +36,9 @@ async def create_project(project: ProjectCreate, current_user: User = Depends(ge
         logger.info(f"Created new project: {new_project.id}")
         
         return ProjectResponse(
-            id=str(new_project.id),
+            _id=str(new_project.id),
             title=new_project.title,
+            image=new_project.image,
             description=new_project.description,
             mentor_id=str(current_user.id),
             group_ids=[]
@@ -44,105 +48,123 @@ async def create_project(project: ProjectCreate, current_user: User = Depends(ge
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/all", response_model=List[dict])
-async def get_all_projects(current_user: User = Depends(get_current_mentor)):
+
+@router.get("/all")
+async def get_all_projects(
+    skip: int = 0, 
+    limit: int = 50, 
+):
     try:
-        projects = await Project.find_all().to_list()
+        projects = await Project.find_all().skip(skip).limit(limit).to_list()
         result = []
-        
+
         for project in projects:
-            mentor_name = None
+            mentor_obj = None
             if project.mentor:
-                # Fetch mentor if it is a Link
-                mentor = await project.mentor.fetch() if isinstance(project.mentor, Link) else project.mentor
-                if mentor:
-                    mentor_name = mentor.ho_ten
-                else:
-                    logger.warning(f"Failed to fetch mentor for project {project.id}")
+                try:
+                    mentor_obj = await project.mentor.fetch() if isinstance(project.mentor, Link) else project.mentor
+                except Exception:
+                    logger.warning(f"Could not fetch mentor for project {project.id}")
             
             result.append({
-                "id": str(project.id),
+                "_id": str(project.id),
                 "title": project.title,
+                "image": getattr(project, "image", None),
                 "description": project.description,
-                "mentor_name": mentor_name,
+                "mentor": mentor_obj,
             })
-        
+
         return result
     except Exception as e:
-        logger.error(f"Error fetching all projects: {str(e)}")
+        logger.error(f"Error fetching all projects: {repr(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.get("/{project_id}", response_model=ProjectResponse)
-async def get_project_by_id(project_id: str, current_user: User = Depends(get_current_mentor)):
+@router.get("/{project_id}", response_model=ProjectListResponse)
+async def get_project_by_id(
+    project_id: str,    
+):
     try:
-        # Validate the project_id format
         project_id_obj = PyObjectId.validate(project_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid project_id format")
 
     try:
-        # Fetch the project from the database
         project = await Project.get(project_id_obj)
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
 
-        # Ensure the mentor is loaded
-        await project.fetch_link("mentor")
+        # Fetch mentor
+        mentor = await project.mentor.fetch() if isinstance(project.mentor, Link) else project.mentor
 
-        # Check if the current user is the mentor of the project
-        if str(project.mentor.id) != str(current_user.id):
-            raise HTTPException(status_code=403, detail="Not authorized")
-
-        # Fetch linked groups
+        # Fetch groups
         groups = await project.fetch_link("groups") or []
 
-        return ProjectResponse(
-            id=str(project.id),
+        # Convert to response schema
+        return ProjectListResponse(
+            _id=project.id,
             title=project.title,
+            image=project.image,
             description=project.description,
-            mentor_id=str(project.mentor.id),
-            group_ids=[str(group.id) for group in groups] if groups else []
+            mentor=UserResponse(**mentor.model_dump()) if mentor else None,
+            groups=[GroupResponse(**group.model_dump()) for group in groups]
         )
+
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error fetching project by ID: {str(e)}")
+        logger.error(f"Error fetching project by ID {project_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.put("/{project_id}", response_model=ProjectResponse)
-async def update_project(project_id: str, project: ProjectCreate, current_user: User = Depends(get_current_mentor)):
+@router.put("/{project_id}", response_model=ProjectListResponse)
+async def update_project(
+    project_id: str,
+    project: ProjectCreate,
+    current_user: User = Depends(get_current_mentor)
+):
     try:
+        # Validate project_id
         project_id_obj = PyObjectId.validate(project_id)
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid project_id format")
 
     try:
+        # Lấy project từ DB
         db_project = await Project.get(project_id_obj)
         if not db_project:
             raise HTTPException(status_code=404, detail="Project not found")
 
-        await db_project.fetch_link("mentor")  # Ensure mentor is loaded
-
+        # Kiểm tra quyền
+        await db_project.fetch_link("mentor")
         if str(db_project.mentor.id) != str(current_user.id):
             raise HTTPException(status_code=403, detail="Not authorized")
-        
+
+        # Cập nhật project
         db_project.title = project.title
         db_project.description = project.description
         await db_project.save()
 
+        # Fetch mentor
+        mentor = await db_project.mentor.fetch() if isinstance(db_project.mentor, Link) else db_project.mentor
+
+        # Fetch groups
         groups = await db_project.fetch_link("groups") or []
-        
+
         logger.info(f"Updated project: {db_project.id}")
-        
-        return ProjectResponse(
-            id=str(db_project.id),
+
+        return ProjectListResponse(
+            _id=db_project.id,
             title=db_project.title,
+            image=db_project.image,
             description=db_project.description,
-            mentor_id=str(db_project.mentor.id),
-            group_ids=[str(group.id) for group in groups] if groups else []
+            mentor=UserResponse(**mentor.model_dump()) if mentor else None,
+            groups=[GroupResponse(**group.model_dump()) for group in groups]
         )
+
     except Exception as e:
         logger.error(f"Error updating project: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 
 @router.delete("/{project_id}")
 async def delete_project(project_id: str, current_user: User = Depends(get_current_mentor)):

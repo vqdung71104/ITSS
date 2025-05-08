@@ -1,5 +1,6 @@
 from typing import Literal, Optional
 from pydantic import BaseModel, EmailStr
+from schemas.pyobjectid_schemas import PyObjectId
 
 class UserCreate(BaseModel):
   HoDem: str
@@ -17,6 +18,7 @@ class UserLogin(BaseModel):
     from_attributes = True
 
 class UserResponse(BaseModel):
+  _id: PyObjectId
   ho_ten: str
   email: EmailStr
   role: str
