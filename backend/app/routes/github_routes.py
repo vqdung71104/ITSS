@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from service.github_service import GitHubService
+from typing import Optional
 
 router = APIRouter(
     prefix='/github',
@@ -10,47 +11,27 @@ router = APIRouter(
 def get_github_service():
     return GitHubService()
 
-@router.get('/repos')
-async def get_repos(
-    username: str = None, 
-    github_service: GitHubService = Depends(get_github_service)
-):
-    try:
-        return github_service.get_user_repositories(username)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@router.get('/repos/{username}/{repo_name}/commits')
-async def get_repo_commits(
-    username: str, 
-    repo_name: str, 
-    github_service: GitHubService = Depends(get_github_service)
-):
-    try:
-        return github_service.get_repo_commits(repo_name,username)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@router.get('/repos/{username}/{repo_name}/contributors')
-async def get_repo_contributors(
-    username: str, 
-    repo_name: str, 
-    github_service: GitHubService = Depends(get_github_service)
-):
-    try:
-        return github_service.get_repo_contributors(repo_name,username)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@router.get("/repos/{username}/{repo_name}/analysis")
-async def analyze_repo(
+@router.get("/repos")
+async def get_repo(
     username: str,
-    repo_name: str,
+    repo_name: Optional[str] = None,
+    type: Optional[str] = None,
     github_service: GitHubService = Depends(get_github_service)
 ):
-    """Phân tích một kho lưu trữ GitHub"""
+    """Lấy thông tin về một kho lưu trữ GitHub"""
     try:
-        contributors = github_service.analyze_contributor_activity(repo_name, username)
-        return {"contributors": contributors}
+        if type in {"commits", "contributors", "analysis"} and not repo_name:
+            raise HTTPException(status_code=400, detail="Missing repo_name for the requested type")
+
+        if type == "commits":
+            return github_service.get_repo_commits(repo_name, username)
+        elif type == "contributors":
+            return github_service.get_repo_contributors(repo_name, username)
+        elif type == "analysis":
+            return github_service.analyze_contributor_activity(repo_name, username)
+        elif type is None:
+            return github_service.get_user_repositories(username)
+        else:
+            raise HTTPException(status_code=400, detail="Invalid type")
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
