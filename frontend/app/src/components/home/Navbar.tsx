@@ -1,63 +1,73 @@
+import React, { useState } from "react";
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Box,
+  Tabs,
+  Tab,
+  Avatar,
+} from "@mui/material";
 import { Link } from "react-router-dom";
-import logo from "../../assets/icon.png";
-import { useState } from "react";
-import Login from "./Login"; // Import the Login component
+import Login from "./Login";
+import logo from "../../assets/image.png"; // Import logo image
 
 const Navbar = () => {
-  const [menu, setMenu] = useState("Home");
-  const [showLogin, setShowLogin] = useState(false); 
+  const [showLogin, setShowLogin] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
 
-  const scrollToSection = (sectionId : any) => {
-    const section = document.getElementById(sectionId);
-    if (section) {
-      section.scrollIntoView({ behavior: "smooth" });
-    }
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
   };
 
   return (
     <>
-      <nav className="bg-blue-400 text-white py-4 px-6 flex justify-between items-center shadow-lg sticky top-0 z-10">
-        {/* Logo */}
-        <Link to="/">
-          <img src={logo} alt="logo" className="h-10 w-auto scale-200" /> 
-        </Link>
+      <AppBar
+        position="sticky"
+        elevation={3}
+        sx={{ backgroundColor: "#1e88e5" }}
+      >
+        <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+          {/* Logo + Brand */}
+          <Box display="flex" alignItems="center">
+            <Avatar
+              src={logo}
+              alt="Logo"
+              sx={{ width: 64, height: 64, marginRight: 2 }}
+            />
+            <Typography variant="h6" fontWeight={700}>
+              ProjectHub
+            </Typography>
+          </Box>
 
-        {/* Menu Items */}
-        <ul className="flex space-x-6 text-lg font-semibold">
-          {["Home", "Lecturer", "Group", "AboutUs"].map((item) => (
-            <li key={item}>
-              <Link
-                to={item === "Home" ? "/" : `#${item}`}
-                className={`hover:text-gray-200 transition duration-200 relative ${
-                  menu === item ? "text-gray-200" : ""
-                }`}
-                onClick={() => {
-                  setMenu(item);
-                  scrollToSection(item);
-                }}
-              >
-                {item === "AboutUs" ? "About Us" : item}
+          {/* Tabs */}
+          <Tabs
+            value={activeTab}
+            onChange={handleTabChange}
+            textColor="inherit"
+            indicatorColor="secondary"
+            sx={{ flexGrow: 1, justifyContent: "center" }}
+          >
+            <Tab label="Home" component={Link} to="/" />
+            <Tab label="Lecturer" href="#Lecturer" />
+            <Tab label="Group" href="#Group" />
+            <Tab label="About Us" href="#AboutUs" />
+          </Tabs>
 
-                {menu === item && (
-                  <span className="absolute left-0 bottom-[-4px] w-full h-1 bg-white rounded-lg"></span>
-                )}
-              </Link>
-            </li>
-          ))}
-        </ul>
-
-        {/* Login Button */}
-        <div>
-          <button
+          {/* Login button */}
+          <Button
+            variant="contained"
+            color="secondary"
+            sx={{ borderRadius: 2, fontWeight: 600 }}
             onClick={() => setShowLogin(true)}
-            className="bg-white text-blue-500 px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition duration-200"
           >
             Login
-          </button>
-        </div>
-      </nav>
+          </Button>
+        </Toolbar>
+      </AppBar>
 
-      {/* Hiển thị Login Component khi click vào nút Login */}
+      {/* Hiển thị component Login khi click */}
       {showLogin && <Login onClose={() => setShowLogin(false)} />}
     </>
   );
