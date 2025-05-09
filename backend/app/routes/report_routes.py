@@ -20,17 +20,13 @@ router = APIRouter(
 
 @router.post("/", response_model=ReportResponse)
 async def create_report(report: ReportCreate, current_user: User = Depends(get_current_user)):
-    if current_user.role != "student":
-        raise HTTPException(status_code=403, detail="Not authorized")
+    
 
     task = await Task.get(report.task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    # Resolve assigned_students
-    
 
-    # Kiểm tra current_user có trong assigned_students hay không
     
 
     new_report = Report(
@@ -55,8 +51,7 @@ async def create_report(report: ReportCreate, current_user: User = Depends(get_c
 
 @router.get("/", response_model=list[ReportResponse])
 async def get_reports(current_user: User = Depends(get_current_user)):
-    if current_user.role != "student":
-        raise HTTPException(status_code=403, detail="Not authorized")
+    
 
     logger.info(f"Fetching reports for user ID: {current_user.id}")
     reports = await Report.find({"student.$id": current_user.id}).to_list()
@@ -88,8 +83,6 @@ async def get_reports(current_user: User = Depends(get_current_user)):
 
 @router.put("/{report_id}", response_model=ReportResponse)
 async def update_report(report_id: str, report: ReportCreate, current_user: User = Depends(get_current_user)):
-    if current_user.role != "student":
-        raise HTTPException(status_code=403, detail="Not authorized")
 
     db_report = await Report.get(report_id)
     if not db_report:
@@ -108,17 +101,7 @@ async def update_report(report_id: str, report: ReportCreate, current_user: User
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    # Resolve assigned_students
-    #assigned_students = await task.fetch_link("assigned_students") or []
-    #logger.info(f"Assigned students for task {task.id}: {[str(student.id) for student in assigned_students]}")
-    #if not assigned_students:
-     #   logger.error(f"Task {task.id} has no assigned students")
-      #  raise HTTPException(status_code=403, detail="No students assigned to this task")
-
-    # Kiểm tra current_user có trong assigned_students hay không
-    #if str(current_user.id) not in [str(student.id) for student in assigned_students]:
-     #   logger.info(f"User {current_user.id} is not authorized to report on task {task.id}")
-      #  raise HTTPException(status_code=403, detail="Not authorized to report on this task")
+  
 
     db_report.content = report.content
     db_report.task = Link(task, document_class=Task)
@@ -141,8 +124,7 @@ async def update_report(report_id: str, report: ReportCreate, current_user: User
 
 @router.delete("/{report_id}")
 async def delete_report(report_id: str, current_user: User = Depends(get_current_user)):
-    if current_user.role != "student":
-        raise HTTPException(status_code=403, detail="Not authorized")
+    
 
     report = await Report.get(report_id)
     if not report:

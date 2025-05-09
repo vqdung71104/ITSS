@@ -5,17 +5,7 @@ from bson import ObjectId
 from pydantic_core import core_schema
 from schemas.pyobjectid_schemas import PyObjectId
 
-class GroupResponse(BaseModel):
-    id: str
-    name: str
 
-class StudentResponse(BaseModel):
-    id: str
-    ho_ten: str
-
-class ProjectResponse(BaseModel):
-    id: str
-    title: str
 
 class TaskCreate(BaseModel):
     title: str
@@ -26,14 +16,15 @@ class TaskCreate(BaseModel):
     deadline: Optional[datetime] = None
 
 class TaskResponse(BaseModel):
-    id: PyObjectId
+    _id: PyObjectId
     title: str
     description: Optional[str]
-    group: Optional[GroupResponse]
-    assigned_students: Optional[List[StudentResponse]]
-    status: Optional[str]
-    deadline: Optional[datetime]
-    related_to_project: Optional[ProjectResponse]
+    group_id: str
+    group_name: str
+    assigned_students: List[Dict[str, str]] 
+    status: Optional[str] = "pending"
+    deadline: Optional[datetime] = None
+    
 
     class Config:
         from_attributes = True
