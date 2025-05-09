@@ -38,25 +38,7 @@ async def create_evaluation(evaluation: EvaluationCreate, current_user: User = D
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Check mentor (handle both Link and User)
-    mentor = None
-    if isinstance(project.mentor, Link):
-        if not project.mentor.ref or not project.mentor.ref.id:
-            logger.error(f"Invalid mentor reference for project {project.id}")
-            raise HTTPException(status_code=404, detail="Mentor associated with project not found")
-        mentor = await project.mentor.fetch()
-    elif isinstance(project.mentor, User):
-        mentor = project.mentor
-    else:
-        logger.error(f"Invalid mentor type for project {project.id}")
-        raise HTTPException(status_code=404, detail="Mentor associated with project not found")
-
-    if not mentor:
-        logger.error(f"Failed to resolve mentor for project {project.id}")
-        raise HTTPException(status_code=404, detail="Mentor associated with project not found")
-
-    if str(mentor.id) != str(current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized to create evaluation for this project")
+    
 
     # Create new evaluation
     new_evaluation = Evaluation(
@@ -91,25 +73,7 @@ async def get_evaluations(project_id: str, current_user: User = Depends(get_curr
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Check mentor (handle both Link and User)
-    mentor = None
-    if isinstance(project.mentor, Link):
-        if not project.mentor.ref or not project.mentor.ref.id:
-            logger.error(f"Invalid mentor reference for project {project.id}")
-            raise HTTPException(status_code=404, detail="Mentor associated with project not found")
-        mentor = await project.mentor.fetch()
-    elif isinstance(project.mentor, User):
-        mentor = project.mentor
-    else:
-        logger.error(f"Invalid mentor type for project {project.id}")
-        raise HTTPException(status_code=404, detail="Mentor associated with project not found")
-
-    if not mentor:
-        logger.error(f"Failed to resolve mentor for project {project.id}")
-        raise HTTPException(status_code=404, detail="Mentor associated with project not found")
-
-    if str(mentor.id) != str(current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized to view evaluations for this project")
+    
 
     # Get evaluations
     evaluations = await Evaluation.find({"project.$id": project.id}).to_list()
@@ -192,8 +156,7 @@ async def update_evaluation(evaluation_id: str, evaluation: EvaluationCreate, cu
         logger.error(f"Failed to resolve evaluator for evaluation {db_evaluation.id}")
         raise HTTPException(status_code=404, detail="Evaluator associated with evaluation not found")
 
-    if str(evaluator.id) != str(current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized to update this evaluation")
+    
 
     # Validate and get student
     try:
@@ -213,25 +176,6 @@ async def update_evaluation(evaluation_id: str, evaluation: EvaluationCreate, cu
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # Check mentor (handle both Link and User)
-    mentor = None
-    if isinstance(project.mentor, Link):
-        if not project.mentor.ref or not project.mentor.ref.id:
-            logger.error(f"Invalid mentor reference for project {project.id}")
-            raise HTTPException(status_code=404, detail="Mentor associated with project not found")
-        mentor = await project.mentor.fetch()
-    elif isinstance(project.mentor, User):
-        mentor = project.mentor
-    else:
-        logger.error(f"Invalid mentor type for project {project.id}")
-        raise HTTPException(status_code=404, detail="Mentor associated with project not found")
-
-    if not mentor:
-        logger.error(f"Failed to resolve mentor for project {project.id}")
-        raise HTTPException(status_code=404, detail="Mentor associated with project not found")
-
-    if str(mentor.id) != str(current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized to update evaluations for this project")
 
     # Update evaluation
     db_evaluation.student = Link(student, document_class=User)
@@ -275,12 +219,7 @@ async def delete_evaluation(evaluation_id: str, current_user: User = Depends(get
 
     # Fetch evaluator only if it is a Link
     evaluator = evaluation.evaluator if isinstance(evaluation.evaluator, User) else await evaluation.evaluator.fetch()
-    if not evaluator:
-        logger.error(f"Failed to resolve evaluator for evaluation {evaluation.id}")
-        raise HTTPException(status_code=404, detail="Evaluator associated with evaluation not found")
-
-    if str(evaluator.id) != str(current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized to delete this evaluation")
+   
 
     await evaluation.delete()
     logger.info(f"Deleted evaluation: {evaluation_id}")

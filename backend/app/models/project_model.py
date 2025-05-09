@@ -9,7 +9,7 @@ class Project(Document):
     image: Optional[str] = None
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "title": "Project Title",
                 "description": "Project Description",

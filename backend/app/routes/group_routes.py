@@ -4,9 +4,10 @@ from models.group_model import Group
 from models.project_model import Project
 from models.user_model import User
 from models.task_model import Task
-from schemas.group_schemas import GroupCreate, GroupResponse, GroupListResponse, PyObjectId
+from schemas.group_schemas import GroupCreate, GroupResponse, PyObjectId
 from routes.user_routes import get_current_mentor
 from beanie import Link
+import asyncio
 import logging
 
 # Setup logging
@@ -60,10 +61,19 @@ async def create_group(group: GroupCreate, current_user: User = Depends(get_curr
             id=str(new_group.id),
             name=new_group.name,
             project_id=str(project.id),
+            project_title=project.title,
+            project_image=project.image,
+            project_description=project.description,
             leader_id=str(leader.id),
-            member_ids=[],
-            task_ids=[]
+            leader_email=leader.email,
+            leader_name=leader.ho_ten,
+            member_ids=[str(member.id) for member in new_group.members],
+            member_names=[str(member.ho_ten) for member in new_group.members],
+            member_emails=[str(member.email) for member in new_group.members],
         )
+   
+   
+   
     except Exception as e:
         logger.error(f"Error creating group: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -102,19 +112,25 @@ async def get_groups_by_project_id(project_id: str, current_user: User = Depends
         # Prepare the response
         result = []
         for group in groups:
-            leader_name = None
-            if group.leaders:
-                # Fetch leader if it is a Link
-                leader = await group.leaders.fetch() if isinstance(group.leaders, Link) else group.leaders
-                if leader:
-                    leader_name = leader.ho_ten
-                else:
-                    logger.warning(f"Failed to fetch leader for group {group.id}")
+            # Fetch leader
+            leader = await group.leaders.fetch() if isinstance(group.leaders, Link) else group.leaders
+            if not leader:
+                logger.warning(f"Failed to fetch leader for group {group.id}")
+                continue
+
+           
 
             result.append({
                 "id": str(group.id),
                 "name": group.name,
-                "leader_name": leader_name,
+                "project_id": str(project.id),
+                "project_title": project.title,
+                "project_image": project.image,
+                "project_description": project.description,
+                "leader_name": leader.ho_ten if leader else None,
+                "leader_id": str(leader.id) if leader else None,
+                "leader_email": leader.email if leader else None,
+                
             })
 
         return result

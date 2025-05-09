@@ -27,25 +27,21 @@ class GroupCreate(BaseModel):
         json_encoders = {ObjectId: str}
 
 class GroupResponse(BaseModel):
-    id: str
+    _id: str
     name: str
     project_id: str
+    project_title: str
+    project_image: Optional[str] = None
+    project_description: Optional[str] = None
     leader_id: str
-    member_ids: List[str]
-    task_ids: List[str]
+    leader_name: str
+    leader_email: str
+    member_ids: Optional[List[str]]
+    member_names: Optional[List[str]]
+    member_emails: Optional[List[str]]
+    
 
     class Config:
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
 
-class GroupListResponse(BaseModel):
-    id: str
-    name: str
-    project_id: str
-    leader_id: str
-    member_ids: List[str]
-    task_ids: List[str]
-
-    class Config:
-        arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
