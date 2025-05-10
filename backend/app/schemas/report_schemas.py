@@ -10,11 +10,13 @@ class ReportCreate(BaseModel):
     content: str
     task_id: PyObjectId
 
+    class Config:
+        from_attributes = True
+
 class ReportResponse(BaseModel):
-    id: PyObjectId
+    _id: PyObjectId
     content: str
-    student: Optional[dict]
-    task: Optional[dict]
+    task: Optional[dict] = None
     created_at: datetime
 
     class Config:
