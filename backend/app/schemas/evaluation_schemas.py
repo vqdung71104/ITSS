@@ -1,4 +1,4 @@
-from typing import Optional, List, Any
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 from bson import ObjectId
 from pydantic_core import core_schema
@@ -12,10 +12,10 @@ class EvaluationCreate(BaseModel):
     comment: Optional[str] = None
 
 class EvaluationResponse(BaseModel):
-    id: PyObjectId
-    evaluator: Optional[dict]
-    student: Optional[dict]
-    project: Optional[dict]
+    _id: PyObjectId
+    evaluator: Dict[str, str]  # Dictionary chứa thông tin evaluator
+    student: Dict[str, str]    # Dictionary chứa thông tin student
+    project: Dict[str, str]    # Dictionary chứa thông tin project
     score: Optional[float]
     comment: Optional[str]
 
