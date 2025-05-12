@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from typing import List
+from typing import List, Any
 from models.group_model import Group
 from models.project_model import Project
 from models.user_model import User
@@ -62,8 +62,11 @@ async def create_group(group: GroupCreate, current_user: User = Depends(get_curr
                 
         await new_group.insert()
         
+        db_project = await Project.get(group.project_id)
+        db_project.groups.append(Link(new_group, document_class=Group))
+        await db_project.save()
 
-        logger.info(f"Created new group: {new_group.id}")
+        # Update the group_id for the leader and members
 
         logger.info(f"Created new group: {new_group.id}")
 
@@ -81,7 +84,6 @@ async def create_group(group: GroupCreate, current_user: User = Depends(get_curr
             name=new_group.name,
             project_id=str(project.id),
             project_title=project.title,
-            project_image=project.image,
             project_description=project.description,
             leader_id=str(leader.id),
             leader_email=leader.email,
@@ -95,72 +97,69 @@ async def create_group(group: GroupCreate, current_user: User = Depends(get_curr
         logger.error(f"Error creating group: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.get("/project/{project_id}",
-             response_model=List[dict],
-             description="Get all groups by project ID. Only the mentor who created the project can view its groups.",
-             summary="Get groups by project ID")
-async def get_groups_by_project_id(project_id: str, current_user: User = Depends(get_current_mentor)):
+@router.get("/{group_id}",
+             response_model=GroupResponse,
+             description="Get detailed information about a specific group by ID. Only the mentor who created the project can view the group.",
+             summary="Get group by ID")
+async def get_group_by_group_id(group_id: str, current_user: User = Depends(get_current_mentor)):
     try:
-        # Validate the project_id format
-        logger.info(f"Project ID: {project_id}")
-        project_id_obj = PyObjectId.validate(project_id)
+        # Validate the group_id format
+        logger.info(f"Group ID: {group_id}")
+        group_id_obj = PyObjectId.validate(group_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid project_id format")
+        raise HTTPException(status_code=400, detail="Invalid group_id format")
+    
     try:
-        logger.info(f"Project ID Object: {project_id_obj}")
-        # Fetch the project from the database
-        project = await Project.get(project_id_obj)
-        logger.info(f"Project: {project}")
+        logger.info(f"Group ID Object: {group_id_obj}")
+        # Fetch the group from the database
+        group = await Group.get(group_id_obj)
+        logger.info(f"Group found: {group}")
+        if not group:
+            raise HTTPException(status_code=404, detail="Group not found")
+
+        # Fetch project to check mentor and get project details
+        project = await group.project.fetch() if isinstance(group.project, Link) else group.project
         if not project:
             raise HTTPException(status_code=404, detail="Project not found")
 
         # Check if the current user is the mentor of the project
-        mentor_id = None
-        if isinstance(project.mentor, Link):
-            mentor = await project.mentor.fetch()
-            mentor_id = str(mentor.id) if mentor else None
-        elif isinstance(project.mentor, User):
-            mentor_id = str(project.mentor.id)
-        if mentor_id != str(current_user.id):
+        mentor = await project.mentor.fetch() if isinstance(project.mentor, Link) else project.mentor
+        if not mentor or str(mentor.id) != str(current_user.id):
             raise HTTPException(status_code=403, detail="Not authorized")
 
-        # Fetch all groups associated with the project
-        logger.info(f"Fetching groups for project ID: {project_id_obj}")
-        groups = await Group.find({"project.$id": project_id_obj}).to_list()
-        logger.info(f"Groups found: {groups}")
+        # Fetch leader
+        leader = await group.leaders.fetch() if isinstance(group.leaders, Link) else group.leaders
+        if not leader:
+            logger.warning(f"Failed to fetch leader for group {group.id}")
+            raise HTTPException(status_code=404, detail="Leader not found")
 
-        # Prepare the response
-        result = []
-        for group in groups:
-            # Fetch leader
-            leader = await group.leaders.fetch() if isinstance(group.leaders, Link) else group.leaders
-            if not leader:
-                logger.warning(f"Failed to fetch leader for group {group.id}")
-                continue        
-            members = []
-            for member_link in group.members:
-                member = await member_link.fetch() if isinstance(member_link, Link) else member_link
-                members.append({
+        # Fetch members
+        member_data = []
+        for member_link in group.members:
+            member = await member_link.fetch() if isinstance(member_link, Link) else member_link
+            if member:
+                member_data.append({
                     "id": str(member.id),
                     "ho_ten": member.ho_ten,
                     "email": member.email
                 })
-            result.append({
-                "id": str(group.id),
-                "name": group.name,
-                "project_id": str(project.id),
-                "project_title": project.title,
-                "project_image": project.image,
-                "project_description": project.description,
-                "leader_name": leader.ho_ten if leader else None,
-                "leader_id": str(leader.id) if leader else None,
-                "leader_email": leader.email if leader else None,
-                "members": members
-            })
 
-        return result
+        # Prepare response
+        return GroupResponse(
+            id=str(group.id),
+            name=group.name,
+            project_id=str(project.id),
+            project_title=project.title,
+            project_description=project.description,
+            leader_id=str(leader.id),
+            leader_name=leader.ho_ten,
+            leader_email=leader.email,
+            member_ids=[member["id"] for member in member_data],
+            member_names=[member["ho_ten"] for member in member_data],
+            member_emails=[member["email"] for member in member_data]
+        )
     except Exception as e:
-        logger.error(f"Error fetching groups for project {project_id}: {str(e)}")
+        logger.error(f"Error fetching group {group_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
     
 @router.get("/", response_model=List[dict],
@@ -190,7 +189,6 @@ async def get_all_groups(current_user: User = Depends(get_current_mentor),
                 "name": group.name,
                 "project_id": str(project.id),
                 "project_title": project.title,
-                "project_image": project.image,
                 "project_description": project.description,
                 "leader_id": str(leader.id),
                 "leader_name": leader.ho_ten,

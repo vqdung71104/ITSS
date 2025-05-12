@@ -14,6 +14,7 @@ class TaskCreate(BaseModel):
     assigned_student_ids: List[str]
     status: Optional[str] = "todo"
     deadline: Optional[datetime] = None
+    priority: Optional[str] = None
 
 class TaskResponse(BaseModel):
     _id: PyObjectId
@@ -24,6 +25,7 @@ class TaskResponse(BaseModel):
     assigned_students: List[Dict[str, str]] 
     status: Optional[str] = "todo"
     deadline: Optional[datetime] = None
+    priority: Optional[str] = None
     
 
     class Config:
