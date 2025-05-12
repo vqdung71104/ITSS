@@ -8,19 +8,19 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-
+export type Assignee = {
+  id: string;
+  name: string;
+  avatar?: string;
+};
 export type Task = {
   id: string;
   title: string;
   description: string;
-  status: "todo" | "in-progress" | "review" | "completed";
+  status: "todo" | "in-progress" | "review" | "completed" | "pending";
   priority: "low" | "medium" | "high";
   dueDate: string;
-  assignee?: {
-    id: string;
-    name: string;
-    avatar?: string;
-  };
+  assignee?: any[];
   projectId: string;
   projectTitle: string;
 };
@@ -47,6 +47,8 @@ export function TaskCard({ task, onClick, compact = false }: TaskCardProps) {
       "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400",
     completed:
       "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+    pending:
+      "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400",
   };
 
   const statusText = {
@@ -54,6 +56,7 @@ export function TaskCard({ task, onClick, compact = false }: TaskCardProps) {
     "in-progress": "In Progress",
     review: "In Review",
     completed: "Completed",
+    pending: "Pending",
   };
 
   return (
@@ -93,13 +96,17 @@ export function TaskCard({ task, onClick, compact = false }: TaskCardProps) {
         </div>
 
         <div className="flex justify-between items-center mt-3">
-          {task.assignee ? (
+          {task.assignee && task.assignee.length > 0 ? (
             <div className="flex items-center space-x-2">
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={task.assignee.avatar} />
-                <AvatarFallback>{task.assignee.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <span className="text-sm">{task.assignee.name}</span>
+              {task.assignee.map((assignee) => (
+                <div key={assignee.id} className="flex items-center space-x-2">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={assignee.avatar} />
+                    <AvatarFallback>{assignee.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm">{assignee.name}</span>
+                </div>
+              ))}
             </div>
           ) : (
             <span className="text-sm text-muted-foreground italic">

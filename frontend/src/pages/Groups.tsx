@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "../components/ui/select";
 import { useAuth } from "../contexts/AuthContext";
+import { getGroups } from "../data/groupData";
 
 const Groups = () => {
   const { user } = useAuth();
@@ -17,86 +18,21 @@ const Groups = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [projectFilter, setProjectFilter] = useState<string>("all");
 
-  // Mock data loading
   useEffect(() => {
-    // Generate mock groups data
-    const mockGroups: Group[] = [
-      {
-        id: "group1",
-        name: "ML Research Team",
-        projectId: "project1",
-        projectTitle: "Research on Machine Learning Applications",
-        members: [
-          {
-            id: user?.id || "user1",
-            name: user?.name || "John Doe",
-            role: user?.role === "leader" ? "leader" : "member",
-            avatar: user?.avatar,
-          },
-          {
-            id: "user2",
-            name: "Alice Smith",
-            role: user?.role === "leader" ? "member" : "leader",
-            avatar: `https://ui-avatars.com/api/?name=Alice+Smith&background=random`,
-          },
-          {
-            id: "user3",
-            name: "Bob Johnson",
-            role: "member",
-            avatar: `https://ui-avatars.com/api/?name=Bob+Johnson&background=random`,
-          },
-          {
-            id: "user4",
-            name: "Carol Williams",
-            role: "member",
-            avatar: `https://ui-avatars.com/api/?name=Carol+Williams&background=random`,
-          },
-        ],
-        progress: 35,
-        hasUnreadMessages: true,
-      },
-      {
-        id: "group2",
-        name: "Sustainable Energy Team",
-        projectId: "project2",
-        projectTitle: "Sustainable Energy Solutions",
-        members: [
-          {
-            id: "user5",
-            name: "Dave Brown",
-            role: "leader",
-            avatar: `https://ui-avatars.com/api/?name=Dave+Brown&background=random`,
-          },
-          {
-            id: "user6",
-            name: "Eve Taylor",
-            role: "member",
-            avatar: `https://ui-avatars.com/api/?name=Eve+Taylor&background=random`,
-          },
-          {
-            id: "user7",
-            name: "Frank White",
-            role: "member",
-            avatar: `https://ui-avatars.com/api/?name=Frank+White&background=random`,
-          },
-          {
-            id: "user8",
-            name: "Grace Lee",
-            role: "member",
-            avatar: `https://ui-avatars.com/api/?name=Grace+Lee&background=random`,
-          },
-          {
-            id: "user9",
-            name: "Harry Wilson",
-            role: "member",
-            avatar: `https://ui-avatars.com/api/?name=Harry+Wilson&background=random`,
-          },
-        ],
-        progress: 15,
-      },
-    ];
-
-    setGroups(mockGroups);
+    const loadGroups = async () => {
+      try {
+        console.log("Loading Groups...");
+        const GroupsData = await getGroups();
+        setGroups(GroupsData);
+        console.log("Groups state updated:", GroupsData);
+      } catch (error) {
+        console.error("Error loading Groups:", error);
+        // Có thể thêm thông báo lỗi cho người dùng
+      }
+    };
+    if (user?.id) {
+      loadGroups();
+    }
   }, [user]);
 
   const filteredGroups = groups.filter((group) => {
