@@ -12,7 +12,7 @@ class TaskCreate(BaseModel):
     description: Optional[str] = None
     group_id: PyObjectId
     assigned_student_ids: List[str]
-    status: Optional[str] = "pending"
+    status: Optional[str] = "todo"
     deadline: Optional[datetime] = None
 
 class TaskResponse(BaseModel):
@@ -22,7 +22,7 @@ class TaskResponse(BaseModel):
     group_id: str
     group_name: str
     assigned_students: List[Dict[str, str]] 
-    status: Optional[str] = "pending"
+    status: Optional[str] = "todo"
     deadline: Optional[datetime] = None
     
 

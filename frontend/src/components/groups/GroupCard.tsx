@@ -17,16 +17,16 @@ import { Progress } from "../../components/ui/progress";
 export type GroupMember = {
   id: string;
   name: string;
-  role: "leader" | "member";
   avatar?: string;
 };
 
 export type Group = {
   id: string;
   name: string;
+  leader: string;
   projectId: string;
   projectTitle: string;
-  members: GroupMember[];
+  members: any[];
   progress: number;
   hasUnreadMessages?: boolean;
 };
@@ -37,7 +37,7 @@ type GroupCardProps = {
 };
 
 export function GroupCard({ group, onClick }: GroupCardProps) {
-  const leader = group.members.find((member) => member.role === "leader");
+  const leader = group.leader;
 
   return (
     <Card className="card-hover overflow-hidden border-t-4 border-t-academe-500">
@@ -75,7 +75,7 @@ export function GroupCard({ group, onClick }: GroupCardProps) {
 
             <p className="text-sm mb-3">
               <span className="text-muted-foreground">Team Leader: </span>
-              {leader ? leader.name : "Not assigned"}
+              {leader ? leader : "Not assigned"}
             </p>
           </div>
 
