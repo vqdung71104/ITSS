@@ -7,9 +7,13 @@ const CACHE_DURATION = 100 * 60 * 1000; // 5 phút cache
 
 export const getProjects = async (forceRefresh = false): Promise<Project[]> => {
   const now = Date.now();
-  
+
   // Nếu có cache và chưa hết hạn, và không yêu cầu refresh
-  if (cachedProjects.length > 0 && now - lastFetchTime < CACHE_DURATION && !forceRefresh) {
+  if (
+    cachedProjects.length > 0 &&
+    now - lastFetchTime < CACHE_DURATION &&
+    !forceRefresh
+  ) {
     return cachedProjects;
   }
 
@@ -18,16 +22,15 @@ export const getProjects = async (forceRefresh = false): Promise<Project[]> => {
     console.log("Projects fetched from API");
 
     cachedProjects = response.data.map((project: any) => ({
-      id: project._id,
+      id: project.id,
       title: project.title,
       description: project.description,
       mentorName: project.mentor.ho_ten,
       mentorId: project.mentor._id,
       status: "open",
       progress: 50,
-      tags: ["tag1", "tag2"],
+      tags: project.tags,
     }));
-
     lastFetchTime = now;
     return cachedProjects;
   } catch (error) {
