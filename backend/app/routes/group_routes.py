@@ -293,6 +293,54 @@ async def change_group_leader(group_id: str, new_leader_id: str, current_user: U
         logger.error(f"Error changing leader of group {group_id} to {new_leader_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+# @router.delete("/{group_id}/remove-member/{member_id}", response_model=dict)
+# async def remove_member_from_group(group_id: str, member_id: str, current_user: User = Depends(get_current_mentor)):
+#     """
+#     Remove a member from a group.
+#     """
+#     try:
+#         # Validate group_id and member_id
+#         group_id_obj = PyObjectId.validate(group_id)
+#         member_id_obj = PyObjectId.validate(member_id)
+#     except ValueError:
+#         raise HTTPException(status_code=400, detail="Invalid group_id or member_id format")
+
+#     try:
+#         # Fetch the group from the database
+#         group = await Group.get(group_id_obj)
+#         if not group:
+#             raise HTTPException(status_code=404, detail="Group not found")
+
+#         # Fetch the member from the database
+#         member = await User.get(member_id_obj)
+#         if not member:
+#             raise HTTPException(status_code=404, detail="Member not found")
+
+#         members = await asyncio.gather(*[member.fetch() for member in group.members])
+#         # Ensure the member is part of the group
+#         if member_id_obj not in [m.id for m in members]:
+#             raise HTTPException(status_code=400, detail="Member is not part of the group")
+
+#         # Remove the member from the group
+#         group.members = [m for m in members if m.id != member_id_obj]
+#         await group.save()
+
+#         # Update the member's group_id to None
+#         member.group_id = None
+#         await member.save()
+
+#         logger.info(f"Removed member {member.id} from group {group.id}")
+
+#         # Prepare the response
+#         return {
+#             "message": "Member removed successfully",
+#             "removed_member_id": str(member.id),
+#             "group_name": group.name,
+#             "group_id": str(group.id)
+#         }
+#     except Exception as e:
+#         logger.error(f"Error removing member {member_id} from group {group_id}: {str(e)}")
+#         raise HTTPException(status_code=500, detail="Internal server error")
 @router.delete("/{group_id}/remove-member/{member_id}", response_model=dict)
 async def remove_member_from_group(group_id: str, member_id: str, current_user: User = Depends(get_current_mentor)):
     """
@@ -316,19 +364,26 @@ async def remove_member_from_group(group_id: str, member_id: str, current_user: 
         if not member:
             raise HTTPException(status_code=404, detail="Member not found")
 
-        members = await asyncio.gather(*[member.fetch() for member in group.members])
-        # Ensure the member is part of the group
-        if member_id_obj not in [m.id for m in members]:
-            raise HTTPException(status_code=400, detail="Member is not part of the group")
+        # Fetch all members to compare IDs
+        fetched_members = []
+        for member_link in group.members:
+            fetched_member = await member_link.fetch() if isinstance(member_link, Link) else member_link
+            fetched_members.append(fetched_member)
 
-        # Remove the member from the group
-        group.members = [m for m in members if m.id != member_id_obj]
+        # Check if the member is in the group by comparing IDs
+        if not any(fetched_member.id == member_id_obj for fetched_member in fetched_members):
+            raise HTTPException(status_code=400, detail="Member is not in the group")
+
+        # Remove the member by filtering the original Link list
+        group.members = [
+            member_link for member_link in group.members
+            if (await member_link.fetch() if isinstance(member_link, Link) else member_link).id != member_id_obj
+        ]
         await group.save()
 
         # Update the member's group_id to None
         member.group_id = None
         await member.save()
-
         logger.info(f"Removed member {member.id} from group {group.id}")
 
         # Prepare the response

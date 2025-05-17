@@ -24,6 +24,8 @@ export type Group = {
   id: string;
   name: string;
   leader: string;
+  leaderId?: string;
+  description?: string;
   projectId: string;
   projectTitle: string;
   members: any[];

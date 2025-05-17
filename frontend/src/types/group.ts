@@ -1,4 +1,3 @@
-
 export interface GroupMember {
   id: string;
   name: string;

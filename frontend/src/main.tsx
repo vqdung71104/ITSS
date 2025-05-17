@@ -19,6 +19,7 @@ import Tasks from "./pages/Tasks";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import ProjectDetail from "./pages/ProjectDetail";
+import GroupDetail from "./pages/GroupDetail";
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
@@ -46,6 +47,7 @@ root.render(
                 element={<ProjectDetail />}
               />
               <Route path="/dashboard/groups" element={<Groups />} />
+              <Route path="/dashboard/groups/:id" element={<GroupDetail />} />
               <Route path="/dashboard/tasks" element={<Tasks />} />
               <Route path="/dashboard/reports" element={<Dashboard />} />
               <Route path="/dashboard/profile" element={<Profile />} />
