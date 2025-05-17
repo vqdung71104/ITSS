@@ -8,9 +8,15 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Progress } from "../../components/ui/progress";
+import { Eye, Edit, Trash, Users, MoreVertical } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
-import { Users } from "lucide-react";
 
 export type Project = {
   id: string;
@@ -26,9 +32,20 @@ export type Project = {
 type ProjectCardProps = {
   project: Project;
   onClick?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  userRole?: string;
+  userId?: string;
 };
 
-export function ProjectCard({ project, onClick }: ProjectCardProps) {
+export function ProjectCard({
+  project,
+  onClick,
+  onEdit,
+  onDelete,
+  userRole = "student",
+  userId = "",
+}: ProjectCardProps) {
   const { user } = useAuth();
 
   const statusColor = {
@@ -102,7 +119,7 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
             : user?.role === "mentor" && user?.id === project.mentorId
             ? "Manage Team"
             : project.status === "open"
-            ? "Join Project"
+            ? "View Details"
             : "View Details"}
         </Button>
       </CardFooter>

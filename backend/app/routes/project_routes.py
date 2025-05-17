@@ -70,6 +70,7 @@ async def create_project(project: ProjectCreate, current_user: User = Depends(ge
         
         return ProjectResponse(
             _id=str(new_project.id),
+            id=str(new_project.id),
             title=new_project.title,
             status=new_project.status,
             tags=new_project.tags,
@@ -107,6 +108,7 @@ async def get_all_projects(
 
             result.append(ProjectListResponse(
                 _id=str(project.id),
+                id=str(project.id),
                 title=project.title,
                 status=project.status,
                 tags=project.tags,
@@ -146,7 +148,8 @@ async def get_project_by_id(project_id: str):
         groups = await fetch_groups(project)
 
         return ProjectListResponse(
-            _id=str(project.id),
+            # _id=str(project.id),
+            id=str(project.id),
             title=project.title,
             status=project.status,
             tags=project.tags,

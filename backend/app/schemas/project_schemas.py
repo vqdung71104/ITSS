@@ -14,6 +14,7 @@ class ProjectCreate(BaseModel):
 
 class ProjectResponse(BaseModel):
     _id: PyObjectId
+    id : str
     title: str
     tags: Optional[List[str]] = None
     description: Optional[str] = None
@@ -25,6 +26,7 @@ class ProjectResponse(BaseModel):
 
 class ProjectListResponse(BaseModel):
     _id: PyObjectId
+    id : str
     title: str
     tags: Optional[List[str]] = None
     description: Optional[str] = None
