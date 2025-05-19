@@ -165,7 +165,7 @@ async def get_project_by_id(project_id: str):
 
 @router.put(
     "/{project_id}",
-    response_model=ProjectListResponse,
+    response_model=dict,
     description="Update an existing project. Only the mentor who created the project can update it.",
     summary="Update a project"
 )
@@ -197,7 +197,7 @@ async def update_project(project_id: str, project: ProjectCreate, current_user: 
         # Cập nhật project
         db_project.title = project.title
         db_project.description = project.description
-        db_project.status = project.status
+        db_project.status = "open"
         db_project.tags = project.tags
         await db_project.save()
 
@@ -205,15 +205,15 @@ async def update_project(project_id: str, project: ProjectCreate, current_user: 
 
         logger.info(f"Updated project: {db_project.id}")
 
-        return ProjectListResponse(
-            _id=str(db_project.id),
-            title=db_project.title,
-            description=db_project.description,
-            status=db_project.status,
-            tags=db_project.tags,
-            mentor=UserResponse(**mentor.model_dump()) if mentor else None,
-            groups=[GroupResponse(**group.model_dump()) for group in groups]
-        )
+        return {
+            "_id": str(db_project.id),
+            "title": db_project.title,
+            "description": db_project.description,
+            "status": "open",
+            "tags": db_project.tags,
+            "mentor": UserResponse(**mentor.model_dump()) if mentor else None,
+            "groups": [GroupResponse(**group.model_dump()) for group in groups]
+        }
     except HTTPException as e:
         raise e
     except Exception as e:

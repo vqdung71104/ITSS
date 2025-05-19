@@ -18,6 +18,7 @@ class TaskCreate(BaseModel):
 
 class TaskResponse(BaseModel):
     _id: PyObjectId
+    id : str
     title: str
     description: Optional[str]
     group_id: str

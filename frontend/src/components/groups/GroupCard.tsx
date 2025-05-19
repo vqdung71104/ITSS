@@ -30,6 +30,7 @@ export type Group = {
   projectTitle: string;
   members: any[];
   progress: number;
+  githubLink?: string;
   hasUnreadMessages?: boolean;
 };
 

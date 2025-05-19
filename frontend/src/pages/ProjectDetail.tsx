@@ -26,7 +26,13 @@ import {
 } from "../components/ui/alert-dialog";
 import { ProjectForm } from "../components/projects/ProjectForm";
 import axiosInstance from "../axios-config";
-
+import { Task } from "../components/tasks/TaskCard";
+import { getTasks } from "../data/taskData";
+import { getGroups } from "../data/groupData";
+import { TaskList } from "../components/tasks/TaskList";
+import { GroupList } from "../components/groups/GroupList";
+import { Group } from "../components/groups/GroupCard";
+import { title } from "process";
 // Mock project data
 const mockProject: Project = {
   id: "project1",
@@ -107,19 +113,9 @@ const ProjectDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [tasks, setTasks] = useState([]);
-  const [groups, setGroups] = useState<
-    {
-      id: string;
-      name: string;
-      description: string;
-      leaderId: string;
-      leaderName: string;
-      members: { id: string; name: string }[];
-      projectId: string;
-      projectTitle: string;
-    }[]
-  >([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  // const [groups, setGroups] = useState<Group[]>([]);
 
   // Fetch project data
   useEffect(() => {
@@ -138,6 +134,7 @@ const ProjectDetail = () => {
           progress: response.data.progress,
           tags: response.data.tags,
         };
+        console.log("Project data fetched:", newProject);
         await new Promise((resolve) => setTimeout(resolve, 800));
         setProject(newProject);
         // setTasks(mockTasks);
@@ -148,16 +145,58 @@ const ProjectDetail = () => {
         setIsLoading(false);
       }
     };
-
+    const loadTasks = async () => {
+      try {
+        const taskData = await getTasks();
+        setTasks(taskData);
+        console.log("Tasks state updated:", taskData);
+      } catch (error) {
+        console.error("Error loading tasks:", error);
+        // Có thể thêm thông báo lỗi cho người dùng
+      }
+    };
+    const loadGroups = async () => {
+      try {
+        console.log("Loading projects...");
+        const projectsData = await getGroups();
+        const formattedGroups = projectsData.map((group: any) => ({
+          id: group.id,
+          name: group.name,
+          leader: group.leader,
+          leaderId: group.leaderId,
+          description: group.description || "",
+          projectId: group.projectId,
+          projectTitle: group.projectTitle,
+          members: group.members.map((member: any) => ({
+            id: member.id,
+            name: member.name,
+          })),
+          progress: group.progress || 0,
+          hasUnreadMessages: group.hasUnreadMessages || false,
+        }));
+        const filteredGroups = projectsData.filter(
+          (group: any) => group.projectId === projectId
+        );
+        console.log("gr data fetched:", projectsData);
+        setGroups(filteredGroups);
+        console.log("Groupstate updated:", formattedGroups);
+      } catch (error) {
+        console.error("Error loading projects:", error);
+        // Có thể thêm thông báo lỗi cho người dùng
+      }
+    };
     fetchProjectData();
+    loadTasks();
+    loadGroups();
   }, [projectId]);
 
   const handleDelete = async () => {
     try {
-      // In a real app, this would be an API call
+      await axiosInstance.delete(`/projects/${projectId}`);
       await new Promise((resolve) => setTimeout(resolve, 1000));
+
       toast.success("Project deleted successfully");
-      navigate("/dashboard/projects");
+      window.location.href = `/dashboard/projects`;
     } catch (error) {
       toast.error("Failed to delete project");
     }
@@ -166,10 +205,18 @@ const ProjectDetail = () => {
   interface UpdateProjectData {
     title: string;
     description: string;
+    tags: string[];
   }
 
-  const handleUpdateProject = (data: UpdateProjectData) => {
+  const handleUpdateProject = async (data: UpdateProjectData) => {
     // In a real app, this would update the project via API
+    console.log("Updating project with data:", data);
+    await axiosInstance.put(`/projects/${projectId}`, {
+      title: data.title,
+      description: data.description,
+      tags: data.tags,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     setProject({
       ...project!,
       title: data.title,
@@ -216,7 +263,8 @@ const ProjectDetail = () => {
     );
   }
 
-  const canEdit = user?.role === "mentor" && user?.id === project.mentorId;
+  // const canEdit = user?.role === "mentor" && user?.id === project.mentorId;
+  const canEdit = user?.role === "mentor" || user?.role === "admin";
 
   return (
     <DashboardLayout>
@@ -310,19 +358,23 @@ const ProjectDetail = () => {
         )}
 
         {!isEditing && (
-          <Tabs defaultValue="tasks" className="w-full mt-6">
+          <Tabs defaultValue="groups" className="w-full mt-6">
             <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="tasks">Tasks</TabsTrigger>
+              {/* <TabsTrigger value="tasks">Tasks</TabsTrigger> */}
               <TabsTrigger value="groups">Groups</TabsTrigger>
             </TabsList>
-            <TabsContent value="tasks">
+            {/* <TabsContent value="tasks">
               <div className="bg-card p-6 rounded-lg border">
-                {/* <TaskList tasks={tasks} projectId={project.id} /> */}
+                <TaskList tasks={tasks} projectId={project.id} />
               </div>
-            </TabsContent>
+            </TabsContent> */}
             <TabsContent value="groups">
               <div className="bg-card p-6 rounded-lg border">
-                {/* <GroupList groups={visibleGroups} projectId={project.id} /> */}
+                {visibleGroups.length > 0 ? (
+                  <GroupList groups={visibleGroups} projectId={project.id} />
+                ) : (
+                  <p>No groups available</p>
+                )}
               </div>
             </TabsContent>
           </Tabs>

@@ -74,6 +74,7 @@ async def create_task(task: TaskCreate,
         
         return TaskResponse(
             _id=new_task.id,
+            id=str(new_task.id),
             title=new_task.title,
             description=new_task.description,
             group_id=str(group.id),
@@ -108,6 +109,7 @@ async def get_all_tasks(current_user: User = Depends(get_current_user),
          })
            result.append(TaskResponse(
                _id=task.id,
+                id=str(task.id),
                title=task.title,
                description=task.description,
                group_id=str(group.id),
@@ -230,6 +232,7 @@ async def update_task(task_id: str, task: TaskCreate, current_user: User = Depen
         
         return TaskResponse(
             _id=db_task.id,
+            id=str(db_task.id),
             title=db_task.title,
             description=db_task.description,
             group_id=str(group.id),

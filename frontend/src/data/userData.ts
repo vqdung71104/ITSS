@@ -28,6 +28,7 @@ export const getStudents = async (forceRefresh = false): Promise<Student[]> => {
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
         student.ho_ten
       )}&background=random`,
+      groupId: student.group_id,
     }));
     console.log("Cached students:", cachedStudents);
     lastFetchTime = now;

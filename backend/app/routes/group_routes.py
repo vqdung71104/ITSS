@@ -6,9 +6,11 @@ from models.user_model import User
 from models.task_model import Task
 from schemas.group_schemas import GroupCreate, GroupResponse, PyObjectId
 from routes.user_routes import get_current_mentor
+from routes.user_routes import get_current_user
 from beanie import Link
 import asyncio
 import logging
+from bson import ObjectId
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -19,7 +21,35 @@ router = APIRouter(
     tags=["groups"],
     responses={404: {"description": "Not found"}},
 )
+@router.post("/add-github-link/{group_id}", response_model=dict,
+             description="Add a GitHub link to a group. Only the mentor who created the project can add a GitHub link.",
+             summary="Add GitHub link to group")
+async def add_github_link(group_id: str, github_link: str, current_user: User = Depends(get_current_user)):
+    try:
+        # Validate the group_id format
+        logger.info(f"Group ID: {group_id}")
+        group_id_obj = PyObjectId.validate(group_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid group_id format")
+    
+    try:
+        # Fetch the group from the database
+        group = await Group.get(group_id_obj)
+        if not group:
+            raise HTTPException(status_code=404, detail="Group not found")
 
+        group.github_link = github_link
+        await group.save()
+
+        logger.info(f"Added GitHub link to group {group.id}")
+
+        return {
+            "group_id": str(group.id),
+            "github_link": group.github_link
+        }
+    except Exception as e:
+        logger.error(f"Error adding GitHub link to group {group_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 @router.post("/", response_model=GroupResponse,
              description="Create a new group. Only the mentor who created the project can create groups.",
              summary="Create a new group")
@@ -46,6 +76,8 @@ async def create_group(group: GroupCreate, current_user: User = Depends(get_curr
             raise HTTPException(status_code=404, detail="Leader not found")
         if leader.role != "student":
             raise HTTPException(status_code=400, detail="Leader must be a student")
+        if leader.group_id:
+            raise HTTPException(status_code=400, detail="Leader is already in another group")
 
         members = []
         member = await User.get(PyObjectId(group.leader_id))
@@ -67,6 +99,9 @@ async def create_group(group: GroupCreate, current_user: User = Depends(get_curr
         await db_project.save()
 
         # Update the group_id for the leader and members
+        db_leader = await User.get(leader_id_obj)
+        db_leader.group_id = Link(new_group, document_class=Group)
+        await db_leader.save()
 
         logger.info(f"Created new group: {new_group.id}")
 
@@ -96,12 +131,11 @@ async def create_group(group: GroupCreate, current_user: User = Depends(get_curr
     except Exception as e:
         logger.error(f"Error creating group: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
-
 @router.get("/{group_id}",
-             response_model=GroupResponse,
+             response_model=dict,
              description="Get detailed information about a specific group by ID. Only the mentor who created the project can view the group.",
              summary="Get group by ID")
-async def get_group_by_group_id(group_id: str, current_user: User = Depends(get_current_mentor)):
+async def get_group_by_group_id(group_id: str, current_user: User = Depends(get_current_user)):
     try:
         # Validate the group_id format
         logger.info(f"Group ID: {group_id}")
@@ -123,9 +157,9 @@ async def get_group_by_group_id(group_id: str, current_user: User = Depends(get_
             raise HTTPException(status_code=404, detail="Project not found")
 
         # Check if the current user is the mentor of the project
-        mentor = await project.mentor.fetch() if isinstance(project.mentor, Link) else project.mentor
-        if not mentor or str(mentor.id) != str(current_user.id):
-            raise HTTPException(status_code=403, detail="Not authorized")
+        # mentor = await project.mentor.fetch() if isinstance(project.mentor, Link) else project.mentor
+        # if not mentor or str(mentor.id) != str(current_user.id):
+        #     raise HTTPException(status_code=403, detail="Not authorized")
 
         # Fetch leader
         leader = await group.leaders.fetch() if isinstance(group.leaders, Link) else group.leaders
@@ -145,27 +179,41 @@ async def get_group_by_group_id(group_id: str, current_user: User = Depends(get_
                 })
 
         # Prepare response
-        return GroupResponse(
-            id=str(group.id),
-            name=group.name,
-            project_id=str(project.id),
-            project_title=project.title,
-            project_description=project.description,
-            leader_id=str(leader.id),
-            leader_name=leader.ho_ten,
-            leader_email=leader.email,
-            member_ids=[member["id"] for member in member_data],
-            member_names=[member["ho_ten"] for member in member_data],
-            member_emails=[member["email"] for member in member_data]
-        )
+        # return GroupResponse(
+        #     id=str(group.id),
+        #     name=group.name,
+        #     project_id=str(project.id),
+        #     project_title=project.title,
+        #     project_description=project.description,
+        #     leader_id=str(leader.id),
+        #     leader_name=leader.ho_ten,
+        #     leader_email=leader.email,
+        #     member_ids=[member["id"] for member in member_data],
+        #     member_names=[member["ho_ten"] for member in member_data],
+        #     member_emails=[member["email"] for member in member_data]
+        # )
+        return {
+            "id": str(group.id),
+            "name": group.name,
+            "project_id": str(project.id),
+            "project_title": project.title,
+            "project_description": project.description,
+            "leader_id": str(leader.id),
+            "leader_name": leader.ho_ten,
+            "leader_email": leader.email,
+            "member_ids": [member["id"] for member in member_data],
+            "member_names": [member["ho_ten"] for member in member_data],
+            "member_emails": [member["email"] for member in member_data],
+            "github_link": group.github_link
+        }
     except Exception as e:
         logger.error(f"Error fetching group {group_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
     
 @router.get("/", response_model=List[dict],
-            description="Get all groups. Only the mentor who created the project can view its groups.",
-            summary="Get all groups")
-async def get_all_groups(current_user: User = Depends(get_current_mentor),
+            description="Get all groups. Only the mentor who created the project can view its groups cai dcm.",
+            summary="Get all groups") 
+async def get_all_groups(current_user: User = Depends(get_current_user),
                          skip: int = Query(0, ge=0, description="Number of groups to skip"),
                          limit: int = Query(50, ge=1, le=100, description="Maximum number of groups to return")):
     try:
@@ -173,6 +221,10 @@ async def get_all_groups(current_user: User = Depends(get_current_mentor),
         groups = await Group.find().skip(skip).limit(limit).to_list()
         result = []
         for group in groups:
+            mentor = await group.leaders.fetch() if isinstance(group.leaders, Link) else group.leaders
+            if not mentor or str(mentor.id) != str(current_user.id):
+                pass
+                # continue  # Skip groups not associated with the current mentor
             # Fetch project and leader and members
             project = await group.project.fetch() if isinstance(group.project, Link) else group.project
             leader = await group.leaders.fetch() if isinstance(group.leaders, Link) else group.leaders
@@ -193,7 +245,8 @@ async def get_all_groups(current_user: User = Depends(get_current_mentor),
                 "leader_id": str(leader.id),
                 "leader_name": leader.ho_ten,
                 "leader_email": leader.email,
-                "members": members
+                "members": members,
+                "github_link" : group.github_link
             })
 
         return result
@@ -221,6 +274,10 @@ async def add_member_to_group(group_id: str, member_id: str, current_user: User 
 
 
         member = await User.get(member_id_obj)
+        print(f"Member: {member}")
+        print(member.group_id, "dcmm")
+        if member.group_id:
+            raise HTTPException(status_code=400, detail="Member is already in another group")
         if not member:
             raise HTTPException(status_code=404, detail="Member not found")
 
@@ -229,11 +286,16 @@ async def add_member_to_group(group_id: str, member_id: str, current_user: User 
             raise HTTPException(status_code=400, detail="Member is already in the group")
 
         # Add the member to the group
+        # member.group_id = group_id
+        # print(f"Member group_id: {member.group_id}")
+        # await member.save()
+        db_leader = await User.get(member_id_obj)
+        db_leader.group_id = Link(group, document_class=Group)
+        await db_leader.save()
         group.members.append(Link(member, document_class=User))
         await group.save()
 
         logger.info(f"Added member {member.id} to group {group.id}")
-
         return True
     except Exception as e:
         logger.error(f"Error adding member {member_id} to group {group_id}: {str(e)}")
@@ -416,7 +478,10 @@ async def delete_group(group_id: str, current_user: User = Depends(get_current_m
             await task.delete()
 
         # Remove group reference from members
-        members = await group.fetch_link("members") or []
+        members = []
+        for member_link in group.members:
+            member = await member_link.fetch() if isinstance(member_link, Link) else member_link
+            members.append(member)
         for member in members:
             member.group_id = None
             await member.save()  # Removed fetch_links=False

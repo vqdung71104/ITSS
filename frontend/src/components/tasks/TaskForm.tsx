@@ -1,30 +1,42 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { 
-  Form, 
-  FormControl, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "../../components/ui/form";
+import { Input } from "../../components/ui/input";
+import { Textarea } from "../../components/ui/textarea";
+import { Button } from "../../components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
+import { Calendar } from "../../components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../../components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-
+import { cn } from "../../lib/utils";
+import { getStudents } from "../../data/userData";
+import axiosInstance from "../../axios-config";
 const formSchema = z.object({
   title: z.string().min(3, "Task title must be at least 3 characters."),
-  description: z.string().min(10, "Description must be at least 10 characters."),
+  description: z
+    .string()
+    .min(10, "Description must be at least 10 characters."),
   status: z.string(),
   priority: z.string(),
   dueDate: z.date(),
@@ -36,17 +48,22 @@ type TaskFormValues = z.infer<typeof formSchema>;
 interface TaskFormProps {
   initialData?: any;
   projectId: string;
-  projectTitle: string;
   onSubmit: (data: TaskFormValues) => void;
   onCancel: () => void;
 }
 
-export function TaskForm({ initialData, projectId, projectTitle, onSubmit, onCancel }: TaskFormProps) {
+export function TaskForm({
+  initialData,
+  projectId,
+  onSubmit,
+  onCancel,
+}: TaskFormProps) {
   const [loading, setLoading] = useState(false);
+  const [students, setStudents] = useState<any[]>([]);
 
   // Parse dueDate from string to Date if it exists
-  const initialDueDate = initialData?.dueDate 
-    ? new Date(initialData.dueDate) 
+  const initialDueDate = initialData?.dueDate
+    ? new Date(initialData.dueDate)
     : new Date();
 
   const form = useForm<TaskFormValues>({
@@ -61,13 +78,63 @@ export function TaskForm({ initialData, projectId, projectTitle, onSubmit, onCan
     },
   });
 
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const studentData = await getStudents();
+        // Filter students to only include those assigned to this project
+        // Filter students to only include those assigned to this project
+        // and exclude students with null groupId
+        const filteredStudents = studentData.filter((student: any) => {
+          return student.groupId && student.groupId._id === projectId;
+        });
+
+        console.log("Filtered Students:", filteredStudents);
+        console.log("groupId:", projectId);
+        console.log("All Students:", studentData);
+
+        // Use the filtered students instead of all students
+        setStudents(
+          filteredStudents.map((student: any) => ({
+            id: student.id,
+            name: student.name,
+          }))
+        );
+      } catch (error) {
+        console.error("Error fetching students:", error);
+      }
+    };
+
+    fetchStudents();
+  }, []);
+
   const handleSubmit = async (data: TaskFormValues) => {
     try {
       setLoading(true);
+      console.log("Form data:", data);
+      console.log("Task create :", {
+        title: data.title,
+        description: data.description,
+        group_id: projectId,
+        assigned_student_id: [data.assigneeName],
+        status: data.status,
+        deadline: data.dueDate,
+        priority: data.priority,
+      });
+      // await axiosInstance.post("/tasks/", {
+      //   title: data.title,
+      //   description: data.description,
+      //   group_id: projectId,
+      //   assigned_student_ids: [data.assigneeName],
+      //   status: data.status,
+      //   deadline: data.dueDate,
+      //   priority: data.priority,
+      // });
+
       // In a real app, we'd make an API call here
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulates API call
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulates API call
       onSubmit(data);
-      toast.success(initialData ? "Task updated" : "Task created");
+      toast.success(initialData ? "Task updatedeee" : "Task createdeeee");
     } catch (error) {
       toast.error("Something went wrong");
     } finally {
@@ -85,9 +152,9 @@ export function TaskForm({ initialData, projectId, projectTitle, onSubmit, onCan
             <FormItem>
               <FormLabel>Task Title</FormLabel>
               <FormControl>
-                <Input 
-                  placeholder="Enter task title" 
-                  {...field} 
+                <Input
+                  placeholder="Enter task title"
+                  {...field}
                   className="border-academe-300 focus:ring-academe-400"
                 />
               </FormControl>
@@ -103,10 +170,10 @@ export function TaskForm({ initialData, projectId, projectTitle, onSubmit, onCan
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea 
-                  placeholder="Enter task description" 
-                  className="resize-none min-h-[100px] border-academe-300 focus:ring-academe-400" 
-                  {...field} 
+                <Textarea
+                  placeholder="Enter task description"
+                  className="resize-none min-h-[100px] border-academe-300 focus:ring-academe-400"
+                  {...field}
                 />
               </FormControl>
               <FormMessage />
@@ -121,7 +188,10 @@ export function TaskForm({ initialData, projectId, projectTitle, onSubmit, onCan
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger className="border-academe-300 focus:ring-academe-400">
                       <SelectValue placeholder="Select status" />
@@ -145,7 +215,10 @@ export function TaskForm({ initialData, projectId, projectTitle, onSubmit, onCan
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Priority</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger className="border-academe-300 focus:ring-academe-400">
                       <SelectValue placeholder="Select priority" />
@@ -210,35 +283,46 @@ export function TaskForm({ initialData, projectId, projectTitle, onSubmit, onCan
           name="assigneeName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Assignee Name (Optional)</FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="Enter assignee name" 
-                  {...field} 
-                  className="border-academe-300 focus:ring-academe-400"
-                />
-              </FormControl>
+              <FormLabel>Assignee</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger className="border-academe-300 focus:ring-academe-400">
+                    <SelectValue placeholder="Select a student" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {students.map((student) => (
+                    <SelectItem key={student.id} value={student.id}>
+                      {student.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
         />
 
         <div className="flex justify-end gap-2 pt-4">
-          <Button 
-            type="button" 
-            variant="outline" 
+          <Button
+            type="button"
+            variant="outline"
             onClick={onCancel}
             disabled={loading}
             className="border-academe-300 hover:bg-academe-50"
           >
             Cancel
           </Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={loading}
             className="bg-academe-500 hover:bg-academe-600"
           >
-            {loading ? "Saving..." : initialData ? "Update Task" : "Create Task"}
+            {loading
+              ? "Saving..."
+              : initialData
+              ? "Update Task"
+              : "Create Task"}
           </Button>
         </div>
       </form>
