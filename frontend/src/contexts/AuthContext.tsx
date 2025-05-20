@@ -8,6 +8,7 @@ type User = {
   role: string;
   avatar?: string;
   token?: string;
+  groupId?: Record<string, any>;
 };
 
 type AuthContextType = {
@@ -46,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
           data.Ten[0]
         )}&background=random`,
+        groupId: data.group_id,
       };
 
       setUser(user);
@@ -79,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
           name
         )}&background=random`,
+        groupId: { default: "default-group-id" }, // Replace "default-group-id" with the appropriate value
       };
 
       setUser(user);

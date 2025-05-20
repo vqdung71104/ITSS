@@ -39,6 +39,7 @@ export const getGroups = async (forceRefresh = false): Promise<Group[]> => {
       })),
       progress: 50,
       hasUnreadMessages: true,
+      githubLink: group.github_link,
     }));
     console.log("Cached groups:", cachedGroups);
     lastFetchTime = now;
@@ -81,6 +82,7 @@ export const getGroupById = async (
         )}&background=random`,
       })),
       progress: 50,
+      githubLink: response.data.github_link,
       hasUnreadMessages: true,
     };
 

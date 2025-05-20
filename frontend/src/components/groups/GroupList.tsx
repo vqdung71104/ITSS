@@ -143,11 +143,15 @@ export function GroupList({
                       variant="outline"
                       size="sm"
                       className="border-academe-200 hover:bg-academe-50"
+                      onClick={() => {
+                        // Navigate to group details page
+                        window.location.href = `dashboard/groups/${group.id}`;
+                      }}
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       View
                     </Button>
-                    {isMentor && (
+                    {/* {isMentor && (
                       <>
                         <Button
                           variant="outline"
@@ -171,7 +175,7 @@ export function GroupList({
                           Delete
                         </Button>
                       </>
-                    )}
+                    )} */}
                   </div>
                 </div>
               </CardContent>

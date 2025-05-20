@@ -12,6 +12,13 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "../components/ui/tabs";
+import { TaskList } from "../components/tasks/TaskList";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -38,23 +45,70 @@ import { getGroupById as getGR } from "../data/groupData";
 import { GroupMember } from "../types/group";
 import { Skeleton } from "../components/ui/skeleton";
 import { useAuth } from "../contexts/AuthContext";
+import { getTasks } from "../data/taskData";
+import { Task } from "../components/tasks/TaskCard";
+import axiosInstance from "../axios-config";
+const getGitHubCommits = async (username: string, repoName: string) => {
+  try {
+    // const response = await fetch(
+    //   `http://localhost:8000/github/repos?username=${username}&repo_name=ITSS&type=commits`
+    // );
+    const response = await axiosInstance.get(
+      `/github/repos?username=${username}&repo_name=${repoName}&type=commits`
+    );
 
+    if (!response) {
+      throw new Error("Failed to fetch GitHub commits");
+    }
+    return await response.data;
+  } catch (error) {
+    console.error("Error fetching GitHub commits:", error);
+    return [];
+  }
+};
 const GroupDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const isMentor = user?.role === "mentor";
-
+  const [taskss, setTaskss] = useState<Task[]>([]);
+  const [commits, setCommits] = useState<any[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false);
   const [isChangeLeaderDialogOpen, setIsChangeLeaderDialogOpen] =
     useState(false);
+  const [isAddGitHubDialogOpen, setIsAddGitHubDialogOpen] = useState(false);
+  const [githubLinkInput, setGitHubLinkInput] = useState("");
+  const projectId = id;
   useEffect(() => {
     if (!sessionStorage.getItem("reloaded")) {
       sessionStorage.setItem("reloaded", "true");
       window.location.reload();
     }
+    const loadTasks = async () => {
+      try {
+        const taskData = await getTasks();
+        const filteredTasks = taskData.filter((task) => task.projectId === id);
+        setTaskss(filteredTasks);
+        console.log("Tasks state updated:", taskData);
+      } catch (error) {
+        console.error("Error loading tasks:", error);
+        // Có thể thêm thông báo lỗi cho người dùng
+      }
+    };
+    loadTasks();
+    // const loadCommits = async () => {
+    //   try {
+    //     const commitData = await getGitHubCommits("ndbaolam");
+    //     setCommits(commitData);
+    //     console.log("Commits state updated:", commitData);
+    //   } catch (error) {
+    //     console.error("Error loading commits:", error);
+    //   }
+    // };
+    // loadCommits();
   }, []);
   const { data: group, isLoading } = useQuery({
     queryKey: ["group", id],
@@ -114,6 +168,55 @@ const GroupDetail = () => {
     },
   });
 
+  const updateGitHubLinkMutation = useMutation({
+    mutationFn: (newGitHubLink: string) =>
+      axiosInstance.post(
+        `/groups/add-github-link/${id}?github_link=${encodeURIComponent(
+          newGitHubLink
+        )}`
+      ),
+    onSuccess: () => {
+      toast.success("GitHub link updated successfully");
+
+      // Cập nhật cục bộ GitHub link
+      queryClient.setQueryData(["group", id], (oldGroup: any) => ({
+        ...oldGroup,
+        githubLink: githubLinkInput.trim(),
+      }));
+
+      setIsAddGitHubDialogOpen(false);
+    },
+    onError: () => {
+      toast.error("Failed to update GitHub link");
+    },
+  });
+
+  // useEffect(() => {
+  //   if (group?.githubLink) {
+  //     const fetchCommits = async () => {
+  //       try {
+  //         const githubUrl = new URL(group.githubLink as string);
+  //         const pathParts = githubUrl.pathname.split("/").filter(Boolean);
+  //         if (pathParts.length < 2) {
+  //           console.error("Invalid GitHub link format.");
+  //           return;
+  //         }
+
+  //         const username = pathParts[0];
+  //         const repoName = pathParts[1];
+
+  //         const commitData = await getGitHubCommits(username);
+  //         setCommits(commitData);
+  //         console.log("Commits state updated:", commitData);
+  //       } catch (error) {
+  //         console.error("Error fetching GitHub commits:", error);
+  //       }
+  //     };
+
+  //     fetchCommits();
+  //   }
+  // }, [group?.githubLink]);
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -168,7 +271,7 @@ const GroupDetail = () => {
 
     removeMemberMutation.mutate(memberId);
   };
-
+  const canEdit = user?.role === "mentor" || user?.role === "admin";
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -252,11 +355,132 @@ const GroupDetail = () => {
                     <dd className="mt-1 text-sm">{group.progress}% complete</dd>
                   </div>
                 )}
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">
+                    GitHub Link
+                  </dt>
+                  <dd className="mt-1 text-sm">
+                    {group.githubLink ? (
+                      <a
+                        href={group.githubLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 underline hover:text-blue-800"
+                      >
+                        {group.githubLink}
+                      </a>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsAddGitHubDialogOpen(true)}
+                      >
+                        Add GitHub Link
+                      </Button>
+                    )}
+                  </dd>
+                </div>
               </dl>
             </CardContent>
           </Card>
         </div>
       </div>
+      {!isEditing && (
+        <Tabs defaultValue="tasks" className="w-full mt-6">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="tasks">Tasks</TabsTrigger>
+            <TabsTrigger value="commits">GitHub Commits</TabsTrigger>
+          </TabsList>
+          <TabsContent value="tasks">
+            <div className="bg-card p-6 rounded-lg border">
+              <TaskList tasks={taskss} projectId={projectId!} />
+            </div>
+          </TabsContent>
+          <TabsContent value="commits">
+            <div className="bg-card p-6 rounded-lg border">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">GitHub Commits</h2>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    if (group?.githubLink) {
+                      try {
+                        // Tách username và repo_name từ link GitHub
+                        const githubUrl = new URL(group.githubLink);
+                        const pathParts = githubUrl.pathname
+                          .split("/")
+                          .filter(Boolean);
+                        if (pathParts.length < 2) {
+                          toast.error("Invalid GitHub link format.");
+                          return;
+                        }
+
+                        const username = pathParts[0];
+                        const repoName = pathParts[1];
+
+                        const commitData = await getGitHubCommits(
+                          username,
+                          repoName
+                        );
+                        setCommits(commitData);
+                        toast.success("Commits fetched successfully!");
+                      } catch (error) {
+                        console.error("Error fetching GitHub commits:", error);
+                        toast.error("Failed to fetch commits.");
+                      }
+                    } else {
+                      toast.error(
+                        "GitHub link is not available. Please add a GitHub link first."
+                      );
+                    }
+                  }}
+                >
+                  Fetch Commits
+                </Button>
+              </div>
+              {commits.length > 0 ? (
+                <ul className="space-y-4">
+                  {commits.map((commit, index) => (
+                    <li
+                      key={index}
+                      className="border border-muted-foreground rounded-lg p-4 bg-muted hover:bg-muted/80 transition"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-primary">
+                          <span className="font-bold">Message:</span>{" "}
+                          {commit.message}
+                        </p>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(commit.date).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-primary">
+                          <span className="font-bold text-secondary text-black">
+                            Author:
+                          </span>{" "}
+                          {commit.author}
+                        </p>
+                      </div>
+
+                      <a
+                        href={commit.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 underline mt-2 inline-block hover:text-blue-800"
+                      >
+                        View Commit
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-muted-foreground">No commits found.</p>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+      )}
 
       {/* Delete Group Dialog */}
       <AlertDialog
@@ -305,6 +529,44 @@ const GroupDetail = () => {
         }
         isLoading={changeLeaderMutation.isPending}
       />
+
+      {/* Add GitHub Link Dialog */}
+      <AlertDialog
+        open={isAddGitHubDialogOpen}
+        onOpenChange={setIsAddGitHubDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Add GitHub Link</AlertDialogTitle>
+            <AlertDialogDescription>
+              Please enter the GitHub repository link for this project.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Enter GitHub Link"
+              value={githubLinkInput}
+              onChange={(e) => setGitHubLinkInput(e.target.value)}
+              className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (githubLinkInput.trim()) {
+                  updateGitHubLinkMutation.mutate(githubLinkInput.trim());
+                } else {
+                  toast.error("GitHub link cannot be empty");
+                }
+              }}
+            >
+              Add Link
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };
