@@ -16,6 +16,7 @@ import { getGroups } from "../data/groupData";
 // import { getGroups } from "../services/groupService";
 
 import { getProjects } from "../data/projectsData";
+import { getTasks } from "../data/taskData";
 const Groups = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
@@ -34,10 +35,22 @@ const Groups = () => {
     queryKey: ["projects"],
     queryFn: () => getProjects(),
   });
+  const { data: tasks = [], isLoading: isLoadingTasks } = useQuery({
+    queryKey: ["tasks"],
+    queryFn: () => getTasks(),
+  });
 
   const handleCreateSuccess = () => {
     setIsCreateDialogOpen(false);
   };
+
+  const groupsWithProgress = groups.map((group) => {
+    const groupTasks = tasks.filter((t) => t.groupId === group.id);
+    const completed = groupTasks.filter((t) => t.status === "completed").length;
+    const total = groupTasks.length;
+    const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { ...group, progress };
+  });
 
   return (
     <DashboardLayout>
@@ -45,7 +58,7 @@ const Groups = () => {
         <GroupsHeader onCreateGroup={() => setIsCreateDialogOpen(true)} />
 
         <GroupsContent
-          groups={groups}
+          groups={groupsWithProgress}
           projects={projects}
           isLoading={isLoadingGroups || isLoadingProjects}
           selectedProjectId={selectedProjectId}

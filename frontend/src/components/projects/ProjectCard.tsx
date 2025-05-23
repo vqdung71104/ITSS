@@ -63,7 +63,9 @@ export function ProjectCard({
     <Card className="card-hover overflow-hidden border-t-4 border-t-academe-400">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
-          <CardTitle className="text-lg">{project.title}</CardTitle>
+          <CardTitle className="text-lg line-clamp-2 min-h-[3em]">
+            {project.title}
+          </CardTitle>
           <Badge className={statusColor[project.status]} variant="outline">
             {project.status === "in-progress"
               ? "In Progress"

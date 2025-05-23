@@ -5,7 +5,7 @@ let cachedGroups: Group[] = [];
 let lastFetchTime: number = 0;
 const CACHE_DURATION = 100 * 60 * 1000; // 5 phút cache
 
-export const getGroups = async (forceRefresh = false): Promise<Group[]> => {
+export const getGroups = async (forceRefresh = false): Promise<any[]> => {
   const now = Date.now();
 
   // Nếu có cache và chưa hết hạn, và không yêu cầu refresh

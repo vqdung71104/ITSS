@@ -13,7 +13,7 @@ import { Project } from "../components/projects/ProjectCard";
 // import { GroupList } from "../components/groups/GroupList";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "sonner";
-import { ArrowLeft, Edit, Trash } from "lucide-react";
+import { ArrowLeft, Edit, Plus, Trash } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,8 +24,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
 import { ProjectForm } from "../components/projects/ProjectForm";
 import axiosInstance from "../axios-config";
+import { GroupForm } from "../components/groups/GroupForm";
 import { Task } from "../components/tasks/TaskCard";
 import { getTasks } from "../data/taskData";
 import { getGroups } from "../data/groupData";
@@ -33,6 +40,7 @@ import { TaskList } from "../components/tasks/TaskList";
 import { GroupList } from "../components/groups/GroupList";
 import { Group } from "../components/groups/GroupCard";
 import { title } from "process";
+import { CreateGroupForm } from "../components/groups/CreateGroupForm";
 // Mock project data
 const mockProject: Project = {
   id: "project1",
@@ -115,7 +123,8 @@ const ProjectDetail = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
-  // const [groups, setGroups] = useState<Group[]>([]);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   // Fetch project data
   useEffect(() => {
@@ -224,6 +233,9 @@ const ProjectDetail = () => {
     });
     setIsEditing(false);
     toast.success("Project updated successfully");
+  };
+  const handleCreateSuccess = () => {
+    setIsCreateDialogOpen(false);
   };
 
   // Filter groups based on user role
@@ -373,7 +385,19 @@ const ProjectDetail = () => {
                 {visibleGroups.length > 0 ? (
                   <GroupList groups={visibleGroups} projectId={project.id} />
                 ) : (
-                  <p>No groups available</p>
+                  <div className="flex flex-col gap-4">
+                    <div className="flex justify-between items-center">
+                      <p className="text-base">No groups available</p>
+                      <Button
+                        size="sm"
+                        onClick={() => setIsCreateDialogOpen(true)}
+                        className="bg-academe-500 hover:bg-academe-600"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Group
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </div>
             </TabsContent>
@@ -401,6 +425,20 @@ const ProjectDetail = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create Group Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle>Create New Group</DialogTitle>
+          </DialogHeader>
+          <CreateGroupForm
+            projects={[project]}
+            onSuccess={handleCreateSuccess}
+            onCancel={() => setIsCreateDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

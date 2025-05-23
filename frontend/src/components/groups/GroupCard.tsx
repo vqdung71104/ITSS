@@ -71,7 +71,7 @@ export function GroupCard({ group, onClick }: GroupCardProps) {
           </div>
 
           <div>
-            <p className="text-sm mb-2">
+            <p className="text-sm mb-2 line-clamp-2 min-h-[3em]">
               <span className="text-muted-foreground">Project: </span>
               {group.projectTitle}
             </p>

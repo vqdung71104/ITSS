@@ -220,6 +220,7 @@ async def get_all_groups(current_user: User = Depends(get_current_user),
         # Fetch all groups from the database
         groups = await Group.find().skip(skip).limit(limit).to_list()
         result = []
+        print("Groups: {" , groups)
         for group in groups:
             mentor = await group.leaders.fetch() if isinstance(group.leaders, Link) else group.leaders
             if not mentor or str(mentor.id) != str(current_user.id):

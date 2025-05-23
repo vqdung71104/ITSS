@@ -42,8 +42,12 @@ export function AddMemberDialog({
     enabled: open,
   });
   console.log("students", students);
+  // Filter students with groupId as null
+  const studentsWithoutGroup = students.filter(
+    (student) => student.groupId === null
+  );
   // Filter students based on search and exclude existing members
-  const filteredStudents = students
+  const filteredStudents = studentsWithoutGroup
     .filter((student) => !existingMemberIds.includes(student.id))
     .filter(
       (student) =>

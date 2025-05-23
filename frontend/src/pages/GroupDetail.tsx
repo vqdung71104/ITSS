@@ -48,6 +48,18 @@ import { useAuth } from "../contexts/AuthContext";
 import { getTasks } from "../data/taskData";
 import { Task } from "../components/tasks/TaskCard";
 import axiosInstance from "../axios-config";
+const getFreeRiders = async (groupId: string) => {
+  try {
+    const response = await axiosInstance.get(`/groups/free-riders/${groupId}`);
+    if (!response) {
+      throw new Error("Failed to fetch free riders");
+    }
+    return await response.data;
+  } catch (error) {
+    console.error("Error fetching free riders:", error);
+    return [];
+  }
+};
 const getGitHubCommits = async (username: string, repoName: string) => {
   try {
     // const response = await fetch(
@@ -81,6 +93,8 @@ const GroupDetail = () => {
     useState(false);
   const [isAddGitHubDialogOpen, setIsAddGitHubDialogOpen] = useState(false);
   const [githubLinkInput, setGitHubLinkInput] = useState("");
+  const [freeRiders, setFreeRiders] = useState<GroupMember[]>([]);
+  const [isLoadingFreeRider, setIsLoadingFreeRider] = useState(false);
   const projectId = id;
   useEffect(() => {
     if (!sessionStorage.getItem("reloaded")) {
@@ -190,6 +204,18 @@ const GroupDetail = () => {
       toast.error("Failed to update GitHub link");
     },
   });
+
+  const fetchFreeRiders = async () => {
+    if (!id) return;
+    setIsLoadingFreeRider(true);
+    try {
+      const data = await getFreeRiders(id);
+      setFreeRiders(data);
+    } catch (e) {
+      toast.error("Failed to fetch free riders");
+    }
+    setIsLoadingFreeRider(false);
+  };
 
   // useEffect(() => {
   //   if (group?.githubLink) {
@@ -386,10 +412,23 @@ const GroupDetail = () => {
         </div>
       </div>
       {!isEditing && (
-        <Tabs defaultValue="tasks" className="w-full mt-6">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="tasks">Tasks</TabsTrigger>
-            <TabsTrigger value="commits">GitHub Commits</TabsTrigger>
+        <Tabs
+          defaultValue="tasks"
+          className="w-full mt-6"
+          onValueChange={(tab) => {
+            if (tab === "free_rider") fetchFreeRiders();
+          }}
+        >
+          <TabsList className="flex w-full mb-4">
+            <TabsTrigger value="tasks" className="flex-1">
+              Tasks
+            </TabsTrigger>
+            <TabsTrigger value="commits" className="flex-1">
+              GitHub Commits
+            </TabsTrigger>
+            <TabsTrigger value="free_rider" className="flex-1">
+              Free Rider
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="tasks">
             <div className="bg-card p-6 rounded-lg border">
@@ -439,44 +478,79 @@ const GroupDetail = () => {
                 </Button>
               </div>
               {commits.length > 0 ? (
-                <ul className="space-y-4">
+                <div className="space-y-4">
                   {commits.map((commit, index) => (
-                    <li
+                    <div
                       key={index}
-                      className="border border-muted-foreground rounded-lg p-4 bg-muted hover:bg-muted/80 transition"
+                      className="border rounded-lg p-4 bg-muted/60 hover:shadow-md transition flex flex-col gap-2"
                     >
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-primary">
-                          <span className="font-bold">Message:</span>{" "}
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-primary">
+                            {commit.author}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(commit.date).toLocaleString()}
+                          </span>
+                        </div>
+                        <a
+                          href={commit.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 underline hover:text-blue-800"
+                        >
+                          View Commit
+                        </a>
+                      </div>
+                      <div className="mt-1">
+                        <span className="font-medium text-secondary-foreground">
                           {commit.message}
-                        </p>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(commit.date).toLocaleDateString()}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-primary">
-                          <span className="font-bold text-secondary text-black">
-                            Author:
-                          </span>{" "}
-                          {commit.author}
-                        </p>
-                      </div>
-
-                      <a
-                        href={commit.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 underline mt-2 inline-block hover:text-blue-800"
-                      >
-                        View Commit
-                      </a>
-                    </li>
+                    </div>
                   ))}
-                </ul>
+                </div>
               ) : (
-                <p className="text-muted-foreground">No commits found.</p>
+                <p className="text-muted-foreground text-center">
+                  No commits found.
+                </p>
               )}
+            </div>
+          </TabsContent>
+          <TabsContent value="free_rider">
+            <div className="bg-card p-6 rounded-lg border">
+              <div className="space-y-2">
+                {isLoadingFreeRider ? (
+                  <p className="text-muted-foreground text-center">
+                    Loading...
+                  </p>
+                ) : freeRiders.length === 0 ? (
+                  <p className="text-muted-foreground text-center">
+                    No free riders found.
+                  </p>
+                ) : (
+                  freeRiders.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex items-center gap-3 border-b py-2 last:border-b-0"
+                    >
+                      {member.avatar && (
+                        <img
+                          src={member.avatar}
+                          alt={member.name}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      )}
+                      <div>
+                        <span className="font-medium">{member.name}</span>
+                        <div className="text-xs text-muted-foreground">
+                          {member.email}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </TabsContent>
         </Tabs>
