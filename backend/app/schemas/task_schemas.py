@@ -27,6 +27,7 @@ class TaskResponse(BaseModel):
     status: Optional[str] = "todo"
     deadline: Optional[datetime] = None
     priority: Optional[str] = None
+    created_at: Optional[datetime] = None
     
 
     class Config:

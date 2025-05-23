@@ -28,4 +28,5 @@ export interface Student {
   name: string;
   email: string;
   avatar?: string;
+  groupId?: string | null;
 }

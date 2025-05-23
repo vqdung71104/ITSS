@@ -25,10 +25,10 @@ export const getTasks = async (forceRefresh = false): Promise<Task[]> => {
       description: task.description,
       status: task.status,
       groupId: task.group_id,
-      priority: "medium",
+      priority: task.priority,
       dueDate: task.deadline,
       assignee: task.assigned_students.map((student: any) => ({
-        id: student._id,
+        id: student.id,
         name: student.ho_ten || "dcm",
         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
           student.ho_ten
@@ -36,6 +36,7 @@ export const getTasks = async (forceRefresh = false): Promise<Task[]> => {
       })),
       projectId: task.group_id,
       projectTitle: task.group_name,
+      createdAt: task.created_at,
     }));
     console.log("Cached tasks:", cachedTasks);
     lastFetchTime = now;

@@ -55,11 +55,12 @@ export function CreateGroupForm({
     },
   });
 
-  const { data: students = [], isLoading: isLoadingStudents } = useQuery({
+  const { data: studentss = [], isLoading: isLoadingStudents } = useQuery({
     queryKey: ["availableStudents"],
     queryFn: () => getStudents(),
   });
-  console.log("students", students);
+  console.log("students", studentss);
+  const students = studentss.filter((student) => student.groupId === null);
   const selectedProjectId = form.watch("projectId");
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
@@ -160,7 +161,7 @@ export function CreateGroupForm({
           name="leaderId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Group Leader</FormLabel>
+              <FormLabel>Group Leadersss</FormLabel>
               <Select
                 onValueChange={field.onChange}
                 defaultValue={field.value}

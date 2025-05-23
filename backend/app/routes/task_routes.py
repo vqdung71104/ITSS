@@ -117,7 +117,9 @@ async def get_all_tasks(current_user: User = Depends(get_current_user),
                assigned_students=assigned_students,
                status=task.status,
                deadline=task.deadline,
-               priority=task.priority
+               priority=task.priority,
+               created_at=task.created_at,
+            
            ))
         return result
     except Exception as e:
