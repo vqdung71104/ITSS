@@ -9,14 +9,14 @@ interface GroupDetailHeaderProps {
   canManage: boolean;
 }
 
-export function GroupDetailHeader({
+export function GroupDetailHeader({                              
   group,
   onBack,
   onDelete,
   canManage,
 }: GroupDetailHeaderProps) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-centerjustify-between">
       <div className="space-y-1">
         <div className="flex items-center gap-2">
           <Button

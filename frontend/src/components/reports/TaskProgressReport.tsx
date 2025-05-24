@@ -35,7 +35,7 @@ const mockProjects = [
 
 // const mockGroups = [
 //   { id: "group1", name: "ML Analysis Team", projectId: "project1" },
-//   { id: "group2", name: "Data Collection Team", projectId: "project1" },
+//   { id: "group2", name: "Data Cyollection Team", projectId: "project1" },
 //   { id: "group3", name: "Energy Research Team", projectId: "project2" },
 // ];
 

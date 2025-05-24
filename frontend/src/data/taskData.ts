@@ -1,13 +1,31 @@
 import axiosInstance from "../axios-config";
-import { Task } from "../components/tasks/TaskCard";
+
+// Định nghĩa lại type Task tại đây (tránh import gây xung đột)
+export type Task = {
+  id: string;
+  title: string;
+  description: string;
+  status: "todo" | "in-progress" | "review" | "completed" | "pending";
+  groupId: string;
+  priority: "low" | "medium" | "high";
+  dueDate: string;
+  assignee?: {
+    id: string;
+    name: string;
+    avatar?: string;
+  }[];
+  projectId: string;
+  projectTitle: string;
+  createdAt?: string;
+};
+
 let cachedTasks: Task[] = [];
-let lastFetchTime: number = 0;
+let lastFetchTime = 0;
 const CACHE_DURATION = 100 * 60 * 1000;
 
 export const getTasks = async (forceRefresh = false): Promise<Task[]> => {
   const now = Date.now();
 
-  // If cache exists, is not expired, and no refresh is requested
   if (
     cachedTasks.length > 0 &&
     now - lastFetchTime < CACHE_DURATION &&
@@ -15,11 +33,10 @@ export const getTasks = async (forceRefresh = false): Promise<Task[]> => {
   ) {
     return cachedTasks;
   }
+
   try {
-    console.log("Fetching tasks from API...");
     const response = await axiosInstance.get("/tasks/");
-    console.log("Tasks fetched from API", response.data);
-    cachedTasks = response.data.map((task: any) => ({
+    const tasks: Task[] = response.data.map((task: any) => ({
       id: task.id,
       title: task.title,
       description: task.description,
@@ -27,23 +44,25 @@ export const getTasks = async (forceRefresh = false): Promise<Task[]> => {
       groupId: task.group_id,
       priority: task.priority,
       dueDate: task.deadline,
-      assignee: task.assigned_students.map((student: any) => ({
-        id: student.id,
-        name: student.ho_ten || "dcm",
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
-          student.ho_ten
-        )}&background=random`,
-      })),
+      assignee: Array.isArray(task.assigned_students)
+        ? task.assigned_students.map((student: any) => ({
+            id: student.id,
+            name: student.ho_ten || "Unnamed",
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+              student.ho_ten || "Unnamed"
+            )}&background=random`,
+          }))
+        : [],
       projectId: task.group_id,
-      projectTitle: task.group_name,
+      projectTitle: task.group_name || "",
       createdAt: task.created_at,
     }));
-    console.log("Cached tasks:", cachedTasks);
+
+    cachedTasks = tasks;
     lastFetchTime = now;
-    return cachedTasks;
+    return tasks;
   } catch (error) {
     console.error("Error fetching tasks:", error);
-    // If there's an error but cache exists, return the old cache
     if (cachedTasks.length > 0) {
       console.warn("Using cached tasks due to API error");
       return cachedTasks;
@@ -54,4 +73,33 @@ export const getTasks = async (forceRefresh = false): Promise<Task[]> => {
 
 export const getCachedTasks = (): Task[] => {
   return cachedTasks;
+};
+
+export const getTaskById = async (taskId: string): Promise<Task | null> => {
+  try {
+    const response = await axiosInstance.get(`/tasks/${taskId}`);
+    const task = response.data;
+    return {
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      groupId: task.group_id,
+      priority: task.priority,
+      dueDate: task.deadline,
+      assignee: Array.isArray(task.assigned_students)
+        ? task.assigned_students.map((student: any) => ({
+            id: student.id,
+            name: student.ho_ten ? student.ho_ten : student.name ? student.name : "Unnamed",
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(student.ho_ten ? student.ho_ten : student.name ? student.name : "Unnamed")}&background=random`,
+          }))
+        : [],
+      projectId: task.group_id,
+      projectTitle: task.group_name || "",
+      createdAt: task.created_at,
+    };
+  } catch (error) {
+    console.error("❌ Error fetching task by ID:", error);
+    return null;
+  }
 };
