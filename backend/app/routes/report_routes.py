@@ -171,3 +171,5 @@ async def delete_report(report_id: str, current_user: User = Depends(get_current
     except Exception as e:
         logger.error(f"Error deleting report {report_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
+    
+

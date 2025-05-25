@@ -16,7 +16,7 @@ export function GroupDetailHeader({
   canManage,
 }: GroupDetailHeaderProps) {
   return (
-    <div className="flex items-centerjustify-between">
+    <div className="flex items-center justify-between">
       <div className="space-y-1">
         <div className="flex items-center gap-2">
           <Button

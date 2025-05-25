@@ -23,9 +23,10 @@ import {
 } from "../ui/alert-dialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import axiosInstance from "../../axios-config";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export type Assignee = {
   id: string;
@@ -53,7 +54,7 @@ type TaskCardProps = {
 };
 
 export function TaskCard({ task, onClick, compact = false }: TaskCardProps) {
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
@@ -107,10 +108,11 @@ export function TaskCard({ task, onClick, compact = false }: TaskCardProps) {
       toast.error("Failed to delete task");
     },
   });
+  const navigate = useNavigate();
 
   const updateTaskMutation = useMutation({
-    mutationFn: (updatedTask: Task) =>
-      axiosInstance.put(`/tasks/${updatedTask.id}`, {
+    mutationFn: (updatedTask: Task) => {
+      const data = {
         title: updatedTask.title,
         description: updatedTask.description,
         group_id: updatedTask.projectId,
@@ -120,10 +122,12 @@ export function TaskCard({ task, onClick, compact = false }: TaskCardProps) {
         status: updatedTask.status,
         deadline: updatedTask.dueDate,
         priority: updatedTask.priority,
-      }), // Gọi API sửa task
+      };
+      console.log("PUT /tasks/:id data:", data); // In ra dữ liệu gửi lên API
+      return axiosInstance.put(`/tasks/${updatedTask.id}`, data);
+    }, // Gọi API sửa task
     onSuccess: (response) => {
       toast.success("Task updated successfully");
-
       // Chuyển đổi `assigned_students` thành `assignee`
       const updatedTask = {
         ...response.data,
@@ -136,6 +140,9 @@ export function TaskCard({ task, onClick, compact = false }: TaskCardProps) {
             )}&background=random`,
           })
         ),
+        dueDate: response.data.deadline, // Đảm bảo `dueDate` được ánh xạ đúng
+        projectId: response.data.group_id,
+        projectTitle: response.data.group_name,
       };
 
       // Cập nhật danh sách task trong bộ nhớ cục bộ
@@ -232,25 +239,81 @@ export function TaskCard({ task, onClick, compact = false }: TaskCardProps) {
       </CardContent>
       <CardFooter className="pt-2 flex gap-2">
         {/* Nút chính (Start Task, Submit for Review, etc.) */}
-        <Button
-          onClick={() => setIsFormOpen(true)}
-          className="flex-1"
-          variant={task.status === "completed" ? "outline" : "default"}
-        >
-          {task.status === "todo"
-            ? "Start Task"
-            : task.status === "in-progress"
-            ? "Submit for Review"
-            : task.status === "review"
-            ? "View Details"
-            : "View Details"}
-        </Button>
+        {task.status !== "completed" && (
+          <Button
+            onClick={() => {
+              if (
+                task.status === "todo" &&
+                Array.isArray(task.assignee) &&
+                user?.id &&
+                task.assignee.some((a) => a.id === user.id)
+              ) {
+                updateTaskMutation.mutate({
+                  ...task,
+                  status: "in-progress",
+                  dueDate:
+                    typeof task.dueDate === "string"
+                      ? task.dueDate
+                      : task.dueDate
+                      ? (task.dueDate as Date).toISOString()
+                      : "",
+                });
+              } else if (
+                task.status === "in-progress" &&
+                Array.isArray(task.assignee) &&
+                user?.id &&
+                task.assignee.some((a) => a.id === user.id)
+              ) {
+                updateTaskMutation.mutate({
+                  ...task,
+                  status: "review",
+                  dueDate:
+                    typeof task.dueDate === "string"
+                      ? task.dueDate
+                      : task.dueDate
+                      ? (task.dueDate as Date).toISOString()
+                      : "",
+                });
+              } else if (
+                task.status === "review" &&
+                Array.isArray(task.assignee) &&
+                user?.id &&
+                task.assignee.some((a) => a.id === user.id)
+              ) {
+                updateTaskMutation.mutate({
+                  ...task,
+                  status: "completed",
+                  dueDate:
+                    typeof task.dueDate === "string"
+                      ? task.dueDate
+                      : task.dueDate
+                      ? (task.dueDate as Date).toISOString()
+                      : "",
+                });
+              }
+            }}
+            disabled={
+              ["todo", "in-progress", "review"].includes(task.status) &&
+              (!Array.isArray(task.assignee) ||
+                !user?.id ||
+                !task.assignee.some((a) => a.id === user.id))
+            }
+            className="flex-1"
+            variant={task.status === "pending" ? "outline" : "default"}
+          >
+            {task.status === "todo"
+              ? "Start Task"
+              : task.status === "in-progress"
+              ? "Submit for Review"
+              : task.status === "review"
+              ? "Mark as Completed"
+              : "View Details"}
+          </Button>
+        )}
 
-        {/* Nút View Details */}
+        {/* Nút View Details luôn hiển thị */}
         <Button
-          onClick={() => navigate(`/dashboard/tasks/${task.id}`)}
-          className="flex-1"
-          variant="outline"
+           onClick={() => navigate(`/dashboard/tasks/${task.id}`)}
         >
           View Details
         </Button>

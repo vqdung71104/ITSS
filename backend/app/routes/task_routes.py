@@ -154,6 +154,7 @@ async def get_task(task_id: str, current_user: User = Depends(get_current_user))
 
         return TaskResponse(
             _id=task.id,
+             id=str(task.id), # thêm trường id để trả về taskresponse
             title=task.title,
             description=task.description,
             group_id=str(group.id),

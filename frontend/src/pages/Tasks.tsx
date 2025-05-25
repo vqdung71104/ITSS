@@ -240,6 +240,7 @@ const Tasks = () => {
   const { data: fetchedTasks, isLoading: isFetchingTasks } = useQuery({
     queryKey: ["tasks"],
     queryFn: fetchTasks,
+    enabled: !!user,
   });
 
   useEffect(() => {
