@@ -9,7 +9,7 @@ interface GroupDetailHeaderProps {
   canManage: boolean;
 }
 
-export function GroupDetailHeader({
+export function GroupDetailHeader({                              
   group,
   onBack,
   onDelete,

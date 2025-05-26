@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import axios from "axios";
 import axiosInstance from "../../axios-config";
 import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export type Assignee = {
   id: string;
@@ -107,6 +108,7 @@ export function TaskCard({ task, onClick, compact = false }: TaskCardProps) {
       toast.error("Failed to delete task");
     },
   });
+  const navigate = useNavigate();
 
   const updateTaskMutation = useMutation({
     mutationFn: (updatedTask: Task) => {
@@ -311,9 +313,7 @@ export function TaskCard({ task, onClick, compact = false }: TaskCardProps) {
 
         {/* Nút View Details luôn hiển thị */}
         <Button
-          onClick={() => setIsDetailOpen(true)}
-          className="flex-1"
-          variant="outline"
+           onClick={() => navigate(`/dashboard/tasks/${task.id}`)}
         >
           View Details
         </Button>
