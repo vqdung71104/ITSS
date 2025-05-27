@@ -8,7 +8,7 @@ class Report(Document):
     student: Optional[Link["User"]]
     task: Optional[Link["Task"]]
     created_at: datetime = Field(default_factory=datetime.now)
-
+    title: Optional[str] = None 
     class Settings:
         collection = "reports"
 

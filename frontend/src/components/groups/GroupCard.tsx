@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { Progress } from "../../components/ui/progress";
+import { useNavigate } from "react-router-dom";
 
 export type GroupMember = {
   id: string;
@@ -39,8 +40,9 @@ type GroupCardProps = {
   onClick?: () => void;
 };
 
-export function GroupCard({ group, onClick }: GroupCardProps) {
+export function GroupCard({ group }: GroupCardProps) {
   const leader = group.leader;
+  const navigate = useNavigate();
 
   return (
     <Card className="card-hover overflow-hidden border-t-4 border-t-academe-500">
@@ -104,7 +106,10 @@ export function GroupCard({ group, onClick }: GroupCardProps) {
         </div>
       </CardContent>
       <CardFooter className="pt-2">
-        <Button onClick={onClick} className="w-full">
+        <Button
+          onClick={() => navigate(`/dashboard/groups/${group.id}`)}
+          className="w-full"
+        >
           View Group
         </Button>
       </CardFooter>

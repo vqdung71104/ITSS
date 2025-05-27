@@ -26,7 +26,6 @@ const Dashboard = () => {
 
   // Mock data loading
   useEffect(() => {
-    // Mock tasks data
     const loadTasks = async () => {
       try {
         const taskData = await getTasks();
@@ -34,12 +33,9 @@ const Dashboard = () => {
         console.log("Tasks state updated:", taskData);
       } catch (error) {
         console.error("Error loading tasks:", error);
-        // Có thể thêm thông báo lỗi cho người dùng
       }
     };
-    if (user?.id) {
-      loadTasks();
-    }
+
     const loadProjects = async () => {
       try {
         const projectsData = await getProjects();
@@ -50,25 +46,34 @@ const Dashboard = () => {
       }
     };
 
-    if (user?.id) {
-      loadProjects();
-    }
-
     const loadGroups = async () => {
       try {
-        console.log("Loading projects...");
-        const projectsData = await getGroups();
-        setGroups(projectsData);
-        console.log("Projects state updated:", projectsData);
+        const groupsData = await getGroups();
+        setGroups(groupsData);
+        console.log("Groups state updated:", groupsData);
       } catch (error) {
-        console.error("Error loading projects:", error);
-        // Có thể thêm thông báo lỗi cho người dùng
+        console.error("Error loading groups:", error);
       }
     };
+
     if (user?.id) {
+      loadTasks();
+      loadProjects();
       loadGroups();
     }
   }, [user?.id]);
+
+  // Tính toán progress cho từng group
+  const groupsWithProgress = groups.map((group) => {
+    const groupTasks = recentTasks.filter((task) => task.groupId === group.id);
+    const completed = groupTasks.filter(
+      (task) => task.status === "completed"
+    ).length;
+    const total = groupTasks.length;
+    const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { ...group, progress };
+  });
+
   const randomIndex = Math.floor(Math.random() * projects.length);
   const randomIndexForGroup = Math.floor(Math.random() * groups.length);
   const randomIndexForTask = Math.floor(Math.random() * recentTasks.length);
@@ -240,13 +245,13 @@ const Dashboard = () => {
               </div>
             </CardHeader>
             <CardContent>
-              {groups.length === 0 ? (
+              {groupsWithProgress.length === 0 ? (
                 <p className="text-center py-8 text-muted-foreground">
                   No groups found
                 </p>
               ) : (
                 <div className="space-y-4">
-                  <GroupCard group={groups[randomIndexForGroup]}></GroupCard>
+                  <GroupCard group={groupsWithProgress[randomIndexForGroup]} />
                 </div>
               )}
             </CardContent>
