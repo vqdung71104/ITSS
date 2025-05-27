@@ -57,37 +57,51 @@ export const getGroups = async (forceRefresh = false): Promise<any[]> => {
 export const getGroupById = async (
   groupId: string
 ): Promise<Group | undefined> => {
-  const cachedGroup = cachedGroups.find((group) => group.id === groupId);
-  if (cachedGroup) {
-    return cachedGroup;
-  }
-
-  // Nếu không tìm thấy trong cache, gọi API để lấy dữ liệu nhóm
   try {
     console.log(`Fetching group with ID ${groupId} from API...`);
     const response = await axiosInstance.get(`/groups/${groupId}`);
-    const group = {
-      id: response.data.id,
-      name: response.data.name,
-      leader: response.data.leader_name,
-      projectId: response.data.project_id,
-      projectTitle: response.data.project_title,
-      members: response.data.members.map((member: any) => ({
+    const data = response.data;
+
+    // Xử lý members từ member_ids, member_names, member_emails nếu không có trường members
+    let members: GroupMember[] = [];
+    if (Array.isArray(data.members)) {
+      members = data.members.map((member: any) => ({
         id: member.id,
         name: member.ho_ten,
         email: member.email,
-        role: member.ho_ten === response.data.leader_name ? "leader" : "member",
+        role: member.id === data.leader_id ? "leader" : "member",
         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
           member.ho_ten
         )}&background=random`,
-      })),
+      }));
+    } else if (
+      Array.isArray(data.member_ids) &&
+      Array.isArray(data.member_names) &&
+      Array.isArray(data.member_emails)
+    ) {
+      members = data.member_ids.map((id: string, idx: number) => ({
+        id,
+        name: data.member_names[idx] || "",
+        email: data.member_emails[idx] || "",
+        role: id === data.leader_id ? "leader" : "member",
+        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          data.member_names[idx] || ""
+        )}&background=random`,
+      }));
+    }
+
+    const group = {
+      id: data.id,
+      name: data.name,
+      leader: data.leader_name,
+      projectId: data.project_id,
+      projectTitle: data.project_title,
+      members,
       progress: 50,
-      githubLink: response.data.github_link,
+      githubLink: data.github_link,
       hasUnreadMessages: true,
     };
 
-    // Cập nhật cachedGroups
-    cachedGroups.push(group);
     return group;
   } catch (error) {
     console.error(`Error fetching group with ID ${groupId}:`, error);

@@ -84,7 +84,6 @@ const GroupDetail = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const isMentor = user?.role === "mentor";
-  const [taskss, setTaskss] = useState<Task[]>([]);
   const [commits, setCommits] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -96,39 +95,26 @@ const GroupDetail = () => {
   const [freeRiders, setFreeRiders] = useState<GroupMember[]>([]);
   const [isLoadingFreeRider, setIsLoadingFreeRider] = useState(false);
   const projectId = id;
-  useEffect(() => {
-    if (!sessionStorage.getItem("reloaded")) {
-      sessionStorage.setItem("reloaded", "true");
-      window.location.reload();
-    }
-    const loadTasks = async () => {
-      try {
-        const taskData = await getTasks();
-        const filteredTasks = taskData.filter((task) => task.projectId === id);
-        setTaskss(filteredTasks);
-        console.log("Tasks state updated:", taskData);
-      } catch (error) {
-        console.error("Error loading tasks:", error);
-        // Có thể thêm thông báo lỗi cho người dùng
-      }
-    };
-    loadTasks();
-    // const loadCommits = async () => {
-    //   try {
-    //     const commitData = await getGitHubCommits("ndbaolam");
-    //     setCommits(commitData);
-    //     console.log("Commits state updated:", commitData);
-    //   } catch (error) {
-    //     console.error("Error loading commits:", error);
-    //   }
-    // };
-    // loadCommits();
-  }, []);
-  const { data: group, isLoading } = useQuery({
+
+  // Lấy tasks bằng react-query
+  const { data: allTasks = [], isLoading: isLoadingTasks } = useQuery({
+    queryKey: ["tasks"],
+    queryFn: () => getTasks(),
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  });
+  const taskss = allTasks.filter((task) => task.projectId === id);
+
+  const {
+    data: group,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["group", id],
     queryFn: () => getGR(id!),
     enabled: !!id,
     refetchOnWindowFocus: true,
+    staleTime: 0, // luôn lấy mới khi invalidate
   });
 
   // window.location.reload();
@@ -153,6 +139,7 @@ const GroupDetail = () => {
       toast.success("Member added successfully");
       queryClient.invalidateQueries({ queryKey: ["group", id] });
       setIsAddMemberDialogOpen(false);
+      refetch(); // <-- Thêm dòng này để lấy lại dữ liệu group mới nhất
     },
     onError: () => {
       toast.error("Failed to add member");
@@ -242,6 +229,12 @@ const GroupDetail = () => {
   //     fetchCommits();
   //   }
   // }, [group?.githubLink]);
+
+  // Tính progress dựa trên taskss
+  const completedTasks = taskss.filter((t) => t.status === "completed").length;
+  const totalTasks = taskss.length;
+  const progress =
+    totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   if (isLoading) {
     return (
@@ -373,14 +366,12 @@ const GroupDetail = () => {
                     <dd className="mt-1 text-sm">{group.description}</dd>
                   </div>
                 )}
-                {group.progress !== undefined && (
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Progress
-                    </dt>
-                    <dd className="mt-1 text-sm">{group.progress}% complete</dd>
-                  </div>
-                )}
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">
+                    Progress
+                  </dt>
+                  <dd className="mt-1 text-sm">{progress}% complete</dd>
+                </div>
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">
                     GitHub Link

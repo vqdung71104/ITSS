@@ -28,25 +28,85 @@ import {
 import { toast } from "sonner";
 import { GroupForm } from "./GroupForm";
 import { Group, GroupMember } from "./GroupCard";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getStudents } from "../../data/userData";
+import { createGroup } from "../../services/groupService";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useParams, useNavigate } from "react-router-dom";
+
+const formSchema = z.object({
+  name: z.string().min(3, "Group name must be at least 3 characters"),
+  leaderId: z.string().min(1, "Group leader selection is required"),
+});
+
+type FormValues = z.infer<typeof formSchema>;
 
 interface GroupListProps {
   groups: Group[];
-  projectId: string;
   projectTitle?: string;
 }
 
 export function GroupList({
   groups,
-  projectId,
   projectTitle = "Project",
 }: GroupListProps) {
+  const { projectId } = useParams<{ projectId: string }>();
   const { user } = useAuth();
   const [deleteGroupId, setDeleteGroupId] = useState<string | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const navigate = useNavigate();
 
   const isMentor = user?.role === "mentor";
+
+  const queryClient = useQueryClient();
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      leaderId: "",
+    },
+  });
+
+  const { data: studentss = [], isLoading: isLoadingStudents } = useQuery({
+    queryKey: ["availableStudents"],
+    queryFn: () => getStudents(),
+  });
+  const students = studentss.filter((student) => student.groupId === null);
+
+  const createGroupMutation = useMutation({
+    mutationFn: (data: FormValues) => {
+      const selectedLeader = students.find((s) => s.id === data.leaderId);
+      if (!selectedLeader) {
+        throw new Error("Selected leader not found");
+      }
+      const dataAxios = {
+        name: data.name,
+        project_id: projectId,
+        leader_id: data.leaderId,
+      };
+      return createGroup(dataAxios);
+    },
+    onSuccess: (createdGroup) => {
+      toast.success("Group created successfully");
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      setIsCreateOpen(false);
+      form.reset();
+      console.log("Created group:", createdGroup);
+      // Navigate đến trang chi tiết group vừa tạo
+      if (createdGroup?.id) {
+        navigate(`/dashboard/groups/${createdGroup.id}`);
+      }
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create group"
+      );
+    },
+  });
 
   const handleCreateGroup = (formData: any) => {
     // In a real app, this would be an API call
@@ -192,12 +252,69 @@ export function GroupList({
               Create New Group
             </DialogTitle>
           </DialogHeader>
-          <GroupForm
-            projectId={projectId}
-            projectTitle={projectTitle}
-            onSubmit={handleCreateGroup}
-            onCancel={() => setIsCreateOpen(false)}
-          />
+          <form
+            onSubmit={form.handleSubmit((data) =>
+              createGroupMutation.mutate(data)
+            )}
+            className="space-y-6"
+          >
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Group Name
+              </label>
+              <input
+                {...form.register("name")}
+                className="w-full border rounded px-3 py-2"
+                placeholder="Enter group name"
+              />
+              {form.formState.errors.name && (
+                <p className="text-red-500 text-xs mt-1">
+                  {form.formState.errors.name.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Group Leader
+              </label>
+              <select
+                {...form.register("leaderId")}
+                className="w-full border rounded px-3 py-2"
+                disabled={isLoadingStudents || students.length === 0}
+              >
+                <option value="">Select group leader</option>
+                {students.map((student) => (
+                  <option key={student.id} value={student.id}>
+                    {student.name} ({student.email})
+                  </option>
+                ))}
+              </select>
+              {form.formState.errors.leaderId && (
+                <p className="text-red-500 text-xs mt-1">
+                  {form.formState.errors.leaderId.message}
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsCreateOpen(false)}
+                disabled={createGroupMutation.status === "pending"}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={createGroupMutation.status === "pending"}
+                className="bg-academe-500 hover:bg-academe-600"
+              >
+                {createGroupMutation.status === "pending"
+                  ? "Creating..."
+                  : "Create Group"}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
 
