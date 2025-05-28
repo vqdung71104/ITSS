@@ -8,6 +8,8 @@ class UserCreate(BaseModel):
   email: EmailStr
   password: str
   role: Literal["student", "mentor", "admin"]
+  github_user: str
+  
   class Config:
     from_attributes = True
   

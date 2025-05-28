@@ -11,6 +11,16 @@ router = APIRouter(
 def get_github_service():
     return GitHubService()
 
+@router.get("/user_github")
+async def get_info_user(
+    username: str,
+    github_service: GitHubService = Depends(get_github_service)
+):
+    try:
+        return github_service.get_user_info(username)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)) 
+
 @router.get("/repos")
 async def get_repo(
     username: str,
@@ -33,5 +43,17 @@ async def get_repo(
             return github_service.get_user_repositories(username)
         else:
             raise HTTPException(status_code=400, detail="Invalid type")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@router.get("/get_free_rider")
+async def get_free_rider(
+    username: str,
+    repo_name: str,
+    github_service: GitHubService = Depends(get_github_service)
+):
+    try:
+        contributors = github_service.analyze_contributor_activity(repo_name, username)
+        return contributors
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
