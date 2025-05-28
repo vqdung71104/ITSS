@@ -382,8 +382,8 @@ const ProjectDetail = () => {
             </TabsContent> */}
             <TabsContent value="groups">
               <div className="bg-card p-6 rounded-lg border">
-                {visibleGroups.length > 0 ? (
-                  <GroupList groups={visibleGroups} projectId={project.id} />
+                {/* {visibleGroups.length > 0 ? (
+                  <GroupList groups={visibleGroups} />
                 ) : (
                   <div className="flex flex-col gap-4">
                     <div className="flex justify-between items-center">
@@ -398,7 +398,8 @@ const ProjectDetail = () => {
                       </Button>
                     </div>
                   </div>
-                )}
+                )} */}
+                <GroupList groups={visibleGroups} />
               </div>
             </TabsContent>
           </Tabs>
@@ -427,18 +428,6 @@ const ProjectDetail = () => {
       </AlertDialog>
 
       {/* Create Group Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="sm:max-w-[550px]">
-          <DialogHeader>
-            <DialogTitle>Create New Group</DialogTitle>
-          </DialogHeader>
-          <CreateGroupForm
-            projects={[project]}
-            onSuccess={handleCreateSuccess}
-            onCancel={() => setIsCreateDialogOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
     </DashboardLayout>
   );
 };

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { Plus, Eye, Edit, Trash } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
@@ -24,6 +24,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
 import { TaskForm } from "./TaskForm";
+import { useQueryClient } from "@tanstack/react-query";
+import axiosInstance from "../../axios-config";
+import { getGroupById } from "../../data/groupData"; // Đảm bảo đúng đường dẫn
 
 type Task = {
   id: string;
@@ -44,6 +47,7 @@ interface TaskListProps {
   tasks: Task[];
   projectId: string;
   projectTitle?: string;
+  groupMembers?: { id: string; role: string }[];
 }
 
 export function TaskList({
@@ -54,31 +58,138 @@ export function TaskList({
   const { user } = useAuth();
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
+  const [groupLeaderId, setGroupLeaderId] = useState<string | null>(null);
 
-  const isUserLeader = user?.role === "leader";
+  useEffect(() => {
+    const fetchGroup = async () => {
+      try {
+        const group = await getGroupById(projectId);
+        const leader =
+          group && group.members
+            ? group.members.find((m: any) => m.role === "leader")
+            : null;
+        setGroupLeaderId(leader?.id || null);
+      } catch (error) {
+        setGroupLeaderId(null);
+      }
+    };
+    fetchGroup();
+  }, [projectId]);
 
-  const handleCreateTask = (formData: any) => {
-    // In a real app, this would be an API call
-    toast.success("Task created successfully");
-    setIsCreateOpen(false);
+  const isUserLeader = user?.id === groupLeaderId;
+
+  const handleCreateTask = async (formData: any) => {
+    try {
+      // Gọi API để tạo task mới
+      const response = await axiosInstance.post("/tasks/", {
+        title: formData.title,
+        description: formData.description,
+        group_id: projectId,
+        assigned_student_ids: [formData.assigneeName],
+        status: formData.status,
+        deadline: formData.dueDate,
+        priority: formData.priority,
+      });
+
+      const newTask = response.data;
+
+      // Chuyển đổi assigned_students thành assignee
+      const taskWithAssignee = {
+        ...newTask,
+        assignee: newTask.assigned_students.map((student: any) => ({
+          id: student.id,
+          name: student.name,
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            student.name
+          )}&background=random`,
+        })),
+        dueDate: newTask.deadline,
+        projectId: newTask.group_id,
+        projectTitle: newTask.group_name,
+      };
+
+      // Cập nhật danh sách task trong react-query cache (giống Tasks.tsx)
+      queryClient.setQueryData(["tasks"], (oldTasks: any[] | undefined) => {
+        return oldTasks ? [taskWithAssignee, ...oldTasks] : [taskWithAssignee];
+      });
+
+      toast.success("Task created successfully");
+      setIsCreateOpen(false);
+    } catch (error) {
+      console.error("Failed to create task:", error);
+      toast.error("Failed to create task. Please try again.");
+    }
   };
 
-  const handleEditTask = (formData: any) => {
+  const handleEditTask = async (formData: any) => {
     if (!selectedTask) return;
+    try {
+      // Gọi API để cập nhật task
+      const response = await axiosInstance.put(`/tasks/${selectedTask.id}`, {
+        title: formData.title,
+        description: formData.description,
+        group_id: projectId,
+        assigned_student_ids: [formData.assigneeName],
+        status: formData.status,
+        deadline: formData.dueDate,
+        priority: formData.priority,
+      });
 
-    // In a real app, this would update the task via an API
-    toast.success("Task updated successfully");
-    setIsEditOpen(false);
-    setSelectedTask(null);
+      const updatedTask = response.data;
+
+      // Chuyển đổi assigned_students thành assignee
+      const taskWithAssignee = {
+        ...updatedTask,
+        assignee: updatedTask.assigned_students.map((student: any) => ({
+          id: student.id,
+          name: student.name,
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            student.name
+          )}&background=random`,
+        })),
+        dueDate: updatedTask.deadline,
+        projectId: updatedTask.group_id,
+        projectTitle: updatedTask.group_name,
+      };
+
+      // Cập nhật danh sách task trong react-query cache
+      queryClient.setQueryData(["tasks"], (oldTasks: Task[] | undefined) => {
+        return oldTasks
+          ? oldTasks.map((task) =>
+              task.id === selectedTask.id ? taskWithAssignee : task
+            )
+          : [];
+      });
+
+      toast.success("Task updated successfully");
+      setIsEditOpen(false);
+      setSelectedTask(null);
+    } catch (error) {
+      console.error("Failed to update task:", error);
+      toast.error("Failed to update task. Please try again.");
+    }
   };
 
-  const handleDeleteTask = (taskId: string) => {
-    // In a real app, this would be an API call
-    toast.success("Task deleted successfully");
-    setDeleteTaskId(null);
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      // Gọi API để xóa task
+      await axiosInstance.delete(`/tasks/${taskId}`);
+
+      // Xóa task khỏi react-query cache (giống Tasks.tsx)
+      queryClient.setQueryData(["tasks"], (oldTasks: Task[] | undefined) => {
+        return oldTasks ? oldTasks.filter((task) => task.id !== taskId) : [];
+      });
+
+      toast.success("Task deleted successfully");
+      setDeleteTaskId(null);
+    } catch (error) {
+      console.error("Failed to delete task:", error);
+      toast.error("Failed to delete task. Please try again.");
+    }
   };
 
   const statusColor = {

@@ -17,6 +17,7 @@ import {
 import { Progress } from "../../components/ui/progress";
 import { Eye, Edit, Trash, Users, MoreVertical } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export type Project = {
   id: string;
@@ -47,6 +48,7 @@ export function ProjectCard({
   userId = "",
 }: ProjectCardProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const statusColor = {
     open: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
@@ -73,21 +75,22 @@ export function ProjectCard({
                 project.status.slice(1)}
           </Badge>
         </div>
-        <CardDescription className="text-sm line-clamp-2">
-          {project.description}
-        </CardDescription>
       </CardHeader>
       <CardContent className="pb-2">
         <div className="space-y-4">
-          {/* <div>
-            <div className="flex justify-between text-sm mb-1">
-              <span className="text-muted-foreground">Progress</span>
-              <span className="font-medium">{project.progress}%</span>
-            </div>
-            <Progress value={project.progress} className="h-2" />
-          </div> */}
+          {/* Description */}
+          <CardDescription
+            className="text-sm line-clamp-2 min-h-[3em]"
+            style={{ overflow: "hidden", textOverflow: "ellipsis" }}
+          >
+            {project.description}
+          </CardDescription>
 
-          <div className="flex flex-wrap gap-1">
+          {/* Tags */}
+          <div
+            className="flex flex-wrap gap-1 mt-4 min-h-[2.5rem]"
+            style={{ overflow: "hidden" }}
+          >
             {project.tags.map((tag) => (
               <Badge key={tag} variant="secondary" className="text-xs">
                 {tag}
@@ -95,27 +98,20 @@ export function ProjectCard({
             ))}
           </div>
 
-          <div className="flex justify-between text-sm">
-            {/* <div className="flex items-center">
-              <Users className="h-4 w-4 mr-1 text-muted-foreground" />
-              <span>{project.members} members</span>
-            </div> */}
+          {/* Mentor */}
+          <div className="flex justify-between text-sm mt-8 min-h-[4em]">
             <div>
               <span className="text-muted-foreground">Mentor: </span>
               <span>{project.mentorName}</span>
             </div>
           </div>
-
-          {/* {project.teamLeaderName && (
-            <div className="text-sm">
-              <span className="text-muted-foreground">Team Leader: </span>
-              <span>{project.teamLeaderName}</span>
-            </div>
-          )} */}
         </div>
       </CardContent>
       <CardFooter className="pt-2">
-        <Button onClick={onClick} className="w-full">
+        <Button
+          onClick={() => navigate(`/dashboard/projects/${project.id}`)}
+          className="w-full"
+        >
           {isUserOwner
             ? "Manage Project"
             : user?.role === "mentor" && user?.id === project.mentorId

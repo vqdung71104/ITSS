@@ -49,7 +49,7 @@ const Tasks = () => {
   const [tasks, setTasks] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [projectFilter, setProjectFilter] = useState<string>("all");
-  const recentTasks = tasks.slice(0, 20); // Example: Get the first 5 tasks as recent tasks
+  const recentTasks = tasks.slice(0, 40); // Example: Get the first 5 tasks as recent tasks
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -334,7 +334,7 @@ const Tasks = () => {
                 No tasks assigned yet
               </p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-4">
                 {recentTasks.map((task) => (
                   <TaskCard key={task.id} task={task} />
                 ))}
