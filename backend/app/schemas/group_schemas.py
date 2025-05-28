@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel
 from typing import List, Optional
 from bson import ObjectId
@@ -38,7 +39,7 @@ class GroupResponse(BaseModel):
     member_ids: Optional[List[str]]
     member_names: Optional[List[str]]
     member_emails: Optional[List[str]]
-    
+    created_at: Optional[datetime] = None    
 
     class Config:
         arbitrary_types_allowed = True

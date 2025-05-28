@@ -103,9 +103,10 @@ class GitHubService:
                 "Bùi Ngọc Hợp": "hopite601",
                 "Vu Quang Dung": "vqdung71104"
             }
-            # lay login contributor
-            login_user = [{ "login": c["login"], "name": c["name"] } for c in self.get_repo_contributors(repo_name, username)]
-            
+
+            # Lấy login contributor
+            login_user = [{"login": c["login"], "name": c["name"]} for c in self.get_repo_contributors(repo_name, username)]
+
             # Tạo tập hợp authors đã lọc và chuẩn hóa
             authors = {
                 author_map.get(c["author"], c["author"])
@@ -123,9 +124,10 @@ class GitHubService:
 
                 if author not in authors:
                     continue
-                
+
                 if author not in contributors:
                     contributors[author] = {
+                        "contributor": author,
                         "messages": [],
                         "commit_count": 0,
                         "lines_added": 0,
@@ -133,21 +135,23 @@ class GitHubService:
                         "files_modified": 0,
                         "last_commit_date": None
                     }
+
                 if not commit.commit.message.startswith("Merge") and not commit.commit.message.startswith("Update"):
                     contributors[author]["messages"].append(commit.commit.message)
+
                 contributors[author]["commit_count"] += 1
-                contributors[author]["last_commit_date"] = commit.commit.author.date.isoformat() if commit.commit.author.date else None            
-                
-                
+                contributors[author]["last_commit_date"] = commit.commit.author.date.isoformat() if commit.commit.author.date else None
+
                 try:
                     full_commit = repo.get_commit(commit.sha)
                     contributors[author]["lines_added"] += full_commit.stats.additions
                     contributors[author]["lines_removed"] += full_commit.stats.deletions
                     contributors[author]["files_modified"] += len(full_commit.files)
-                    
                 except Exception:
                     continue
 
-            return contributors
+            # Trả về dạng mảng
+            return list(contributors.values())
+
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error analyzing repository: {str(e)}")

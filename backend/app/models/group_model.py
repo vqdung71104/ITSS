@@ -1,5 +1,7 @@
+from datetime import datetime
 from typing import List, Optional
 from beanie import Document, Link
+from pydantic import Field
 
 class Group(Document):
     name: str
@@ -8,6 +10,7 @@ class Group(Document):
     members: Optional[List[Link["User"]]]
     allTasks: Optional[List[Link["Task"]]]
     github_link: Optional[str] = None  # Thêm trường mới với giá trị mặc định là None
+    created_at: datetime = Field(default_factory=datetime.now)
     
     class Settings:
         collection = "groups"

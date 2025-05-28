@@ -2,7 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from routes import user_routes, project_routes, report_routes, task_routes, group_routes, evaluation_routes, github_routes, upload
+from routes import user_routes, project_routes, report_routes, task_routes, group_routes, evaluation_routes, github_routes, upload, free_rider
 from database import init_db
 from config import env
 
@@ -38,6 +38,7 @@ class FastAPIApp:
         self.app.include_router(evaluation_routes.router)
         self.app.include_router(github_routes.router)
         self.app.include_router(upload.router)
+        self.app.include_router(free_rider.router)
 
 
 app_instance = FastAPIApp().app

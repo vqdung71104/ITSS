@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 from bson import ObjectId
@@ -18,6 +19,7 @@ class EvaluationResponse(BaseModel):
     project: Dict[str, str]    # Dictionary chứa thông tin project
     score: Optional[float]
     comment: Optional[str]
-
+    created_at: Optional[datetime] = None
+    
     class Config:
         from_attributes = True

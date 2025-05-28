@@ -1,5 +1,6 @@
+from datetime import datetime
 from beanie import Document, Link
-from pydantic import EmailStr
+from pydantic import EmailStr, Field
 from typing import List, Optional
 
 
@@ -14,6 +15,7 @@ class User(Document):
     contributions: Optional[str]
     ho_ten: Optional[str] = None
     github_user: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.now)
     
     class Settings:
         collection = "users"

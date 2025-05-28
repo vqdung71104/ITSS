@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional, List, Any
 from pydantic import BaseModel, Field
 from schemas.pyobjectid_schemas import PyObjectId
@@ -21,6 +22,7 @@ class ProjectResponse(BaseModel):
     mentor: Optional[UserResponse] = None
     groups: Optional[List[str]] = None
     status: Optional[str] = "Open" #default status
+    created_at: Optional[datetime] = None
     class Config:
         from_attributes = True
 

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 from pydantic import Field
 from beanie import Document, Link
@@ -9,8 +10,7 @@ class Project(Document):
     groups: Optional[List[Link["Group"]]]
     status: Optional[str] = "Open" #default status
     tags: Optional[List[str]] = []  # List of tags
-
-
+    created_at: datetime = Field(default_factory=datetime.now)
     
     class Config:
         json_schema_extra = {
