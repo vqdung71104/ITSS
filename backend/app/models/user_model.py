@@ -13,6 +13,7 @@ class User(Document):
     tasks: Optional[List[Link["Task"]]]
     contributions: Optional[str]
     ho_ten: Optional[str] = None
+    github_user: Optional[str] = None
     
     class Settings:
         collection = "users"
