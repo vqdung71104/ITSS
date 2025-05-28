@@ -7,6 +7,7 @@ from pydantic_core import core_schema
 from schemas.pyobjectid_schemas import PyObjectId
 
 class ReportCreate(BaseModel):
+    title: str
     content: str
     task_id: PyObjectId
 

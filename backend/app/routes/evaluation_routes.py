@@ -86,13 +86,11 @@ async def get_all_evaluations(current_user: User = Depends(get_current_user),
                 logger.error(f"Failed to resolve project for evaluation {evaluation.id}")
                 continue
 
-            # Kiểm tra quyền truy cập: chỉ trả về evaluation của current_user
-            if str(evaluator.id) != str(current_user.id):
-                continue
+            
 
             result.append(EvaluationResponse(
                 _id=evaluation.id,
-                evaluator={"id": str(current_user.id), "ho_ten": current_user.ho_ten, "email": current_user.email},
+                evaluator={"id": str(evaluator.id), "ho_ten": evaluator.ho_ten, "email": evaluator.email},
                 student={"id": str(student.id), "ho_ten": student.ho_ten, "email": student.email},
                 project={"id": str(project.id), "title": project.title, "description": project.description},
                 score=evaluation.score,

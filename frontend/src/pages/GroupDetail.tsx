@@ -48,6 +48,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { getTasks } from "../data/taskData";
 import { Task } from "../components/tasks/TaskCard";
 import axiosInstance from "../axios-config";
+import GroupEvaluationTab from "../components/groups/GroupEvaluationTab";
+
 const getFreeRiders = async (groupId: string) => {
   try {
     const response = await axiosInstance.get(`/groups/free-riders/${groupId}`);
@@ -420,6 +422,9 @@ const GroupDetail = () => {
             <TabsTrigger value="free_rider" className="flex-1">
               Free Rider
             </TabsTrigger>
+            <TabsTrigger value="evaluation" className="flex-1">
+              Evaluation
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="tasks">
             <div className="bg-card p-6 rounded-lg border">
@@ -542,6 +547,11 @@ const GroupDetail = () => {
                   ))
                 )}
               </div>
+            </div>
+          </TabsContent>
+          <TabsContent value="evaluation">
+            <div className="bg-card p-6 rounded-lg border">
+              <GroupEvaluationTab group={group} />
             </div>
           </TabsContent>
         </Tabs>

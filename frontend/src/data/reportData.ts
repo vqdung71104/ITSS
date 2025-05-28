@@ -1,6 +1,7 @@
 import axiosInstance from "../axios-config";
 
 export interface Report {
+  title: string;
   id: string;
   content: string;
   task: { id: string; title: string }; // Phù hợp với trả về backend
@@ -10,15 +11,21 @@ export interface Report {
 
 // Tạo report và trả về report vừa tạo
 export const createReport = async (data: {
+  title: string;
   content: string;
   task_id: string;
 }): Promise<Report> => {
   const response = await axiosInstance.post("/reports/", data);
   return response.data;
 };
-
+export const getAllReports = async (): Promise<Report[]> => {
+  const response = await axiosInstance.get("/reports/");
+  return response.data;
+};
 // Lấy report theo ID (dùng cho sinh viên tự xem)
-export const getReportById = async (reportId: string): Promise<Report | null> => {
+export const getReportById = async (
+  reportId: string
+): Promise<Report | null> => {
   try {
     const response = await axiosInstance.get(`/reports/${reportId}`);
     return response.data;
