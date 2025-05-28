@@ -48,11 +48,16 @@ async def upload_file(task_id: str = Path(...), file: UploadFile = File(...)):
 def list_files(task_id: str = Path(...)):
     try:
         objects = minio_client.list_objects(BUCKET_NAME, prefix=f"{task_id}/")
-        file_list = [obj.object_name[len(task_id)+1:] for obj in objects]
+        file_list = [
+            {
+                "filename": obj.object_name[len(task_id)+1:],
+                "uploaded_at": obj.last_modified.strftime("%Y-%m-%d %H:%M:%S")
+            }
+            for obj in objects
+        ]
         return {"task_id": task_id, "files": file_list}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/tasks/{task_id}/download-file/{filename}")
 def download_file(task_id: str = Path(...), filename: str = Path(...)):
