@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { createReport } from "../../data/reportData";
 
 const schema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters"),
   content: z.string().min(5, "Content must be at least 5 characters"),
 });
 
@@ -33,20 +34,27 @@ interface ReportFormProps {
   onReportCreated?: () => void;
 }
 
-export default function ReportForm({ taskId, onReportCreated }: ReportFormProps) {
+export default function ReportForm({
+  taskId,
+  onReportCreated,
+}: ReportFormProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const form = useForm<ReportFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { content: "" },
+    defaultValues: { title: "", content: "" },
   });
 
   const handleSubmit = async (data: ReportFormValues) => {
     setLoading(true);
     try {
       // Tạo report
-      const report = await createReport({ content: data.content, task_id: taskId });
+      const report = await createReport({
+        title: data.title,
+        content: data.content,
+        task_id: taskId,
+      });
       // Lưu report_id vào localStorage
       if (report && report.id) {
         localStorage.setItem(`report_id_${taskId}`, report.id);
@@ -74,7 +82,28 @@ export default function ReportForm({ taskId, onReportCreated }: ReportFormProps)
           <DialogTitle>Create Report</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-4"
+          >
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel htmlFor="report-title">Report Title</FormLabel>
+                  <FormControl>
+                    <Input
+                      id="report-title"
+                      autoComplete="off"
+                      placeholder="Enter report title"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="content"

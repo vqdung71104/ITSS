@@ -9,6 +9,16 @@ import { getTaskById } from "../data/taskData";
 import MyReportViewer from "../components/reports/MyReportViewer";
 import ReportForm from "../components/reports/ReportForm";
 import { ArrowLeft, ClipboardList } from "lucide-react";
+import { EvaluationButton } from "../components/reports/EvaluationButton";
+// import TaskFileTab from "../components/tasks/TaskFileTab";
+// Update the import path below if the file exists elsewhere:
+import TaskFileTab from "../components/tasks/TaskFileTab";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "../components/ui/tabs";
 
 export default function TaskDetail() {
   const { taskId } = useParams();
@@ -58,25 +68,38 @@ export default function TaskDetail() {
 
   return (
     <DashboardLayout>
-      <div className="w-full px-16 py-10 space-y-10"> {/* tăng padding để “kéo” sát 2 bên */}
-        {/* Header: Back và Task title */}
+      <div className="w-full px-16 py-10 space-y-10">
+        {/* Header: Back, Create Evaluation, và Task title */}
         <div className="flex flex-col gap-2 mb-4">
-          <div className="flex items-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/dashboard/tasks")}
-              className="flex items-center gap-2 text-base font-semibold px-2"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              Back to Tasks
-            </Button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/dashboard/tasks")}
+                className="flex items-center gap-2 text-base font-semibold px-2"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                Back to Tasks
+              </Button>
+            </div>
+            {/* Nút Create Evaluation ở đầu trang */}
+            {/* <EvaluationButton
+              studentId={
+                task.assignee && task.assignee.length > 0
+                  ? task.assignee[0].id
+                  : ""
+              }
+              projectId={task.projectId}
+            /> */}
           </div>
           <div className="flex items-center gap-3 ml-2">
             <div className="h-10 w-10 bg-academe-100 rounded-full flex items-center justify-center">
               <ClipboardList className="h-6 w-6 text-academe-700" />
             </div>
-            <h1 className="text-3xl font-bold text-academe-700">{task.title}</h1>
+            <h1 className="text-3xl font-bold text-academe-700">
+              {task.title}
+            </h1>
           </div>
         </div>
         {/* Grid: Group/Desc và Status */}
@@ -84,11 +107,15 @@ export default function TaskDetail() {
           {/* Group/Students/Desc: chiếm 2/3 */}
           <div className="md:col-span-2 bg-white p-8 rounded-2xl border shadow-sm flex flex-col gap-6 border-l-4 border-academe-500">
             <div>
-              <span className="text-xs font-semibold text-muted-foreground">Group</span>
+              <span className="text-xs font-semibold text-muted-foreground">
+                Group
+              </span>
               <div className="font-bold text-xl">{task.projectTitle}</div>
             </div>
             <div>
-              <span className="text-xs font-semibold text-muted-foreground">Assigned Students</span>
+              <span className="text-xs font-semibold text-muted-foreground">
+                Assigned Students
+              </span>
               <div className="flex gap-4 mt-3">
                 {task.assignee && task.assignee.length > 0 ? (
                   task.assignee.map((student) => (
@@ -96,26 +123,39 @@ export default function TaskDetail() {
                       <Avatar className="h-12 w-12">
                         <AvatarImage src={student.avatar} />
                         <AvatarFallback>
-                          {student.name?.split(" ").map((w: string) => w[0]).join("") || "?"}
+                          {student.name
+                            ?.split(" ")
+                            .map((w: string) => w[0])
+                            .join("") || "?"}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="font-semibold text-lg">{student.name}</span>
+                      <span className="font-semibold text-lg">
+                        {student.name}
+                      </span>
                     </div>
                   ))
                 ) : (
-                  <span className="italic text-muted-foreground">Unassigned</span>
+                  <span className="italic text-muted-foreground">
+                    Unassigned
+                  </span>
                 )}
               </div>
             </div>
             <div>
-              <span className="text-xs font-semibold text-muted-foreground">Description</span>
-              <div className="bg-muted/30 rounded-lg px-4 py-2 mt-2">{task.description}</div>
+              <span className="text-xs font-semibold text-muted-foreground">
+                Description
+              </span>
+              <div className="bg-muted/30 rounded-lg px-4 py-2 mt-2">
+                {task.description}
+              </div>
             </div>
           </div>
           {/* Status: chiếm 1/3, kéo sát phải */}
           <div className="bg-white p-8 rounded-2xl border shadow-sm flex flex-col gap-7 border-l-4 border-academe-500 ml-auto w-full max-w-sm">
             <div>
-              <span className="text-xs font-semibold text-muted-foreground">Status</span>
+              <span className="text-xs font-semibold text-muted-foreground">
+                Status
+              </span>
               <div>
                 <Badge className="text-base px-3 py-1 bg-academe-100 text-academe-700">
                   {task.status}
@@ -123,7 +163,9 @@ export default function TaskDetail() {
               </div>
             </div>
             <div>
-              <span className="text-xs font-semibold text-muted-foreground">Priority</span>
+              <span className="text-xs font-semibold text-muted-foreground">
+                Priority
+              </span>
               <div>
                 <Badge className="text-base px-3 py-1 bg-academe-100 text-academe-700">
                   {task.priority}
@@ -131,24 +173,44 @@ export default function TaskDetail() {
               </div>
             </div>
             <div>
-              <span className="text-xs font-semibold text-muted-foreground">Due Date</span>
-              <div className="text-lg">{new Date(task.dueDate).toLocaleDateString()}</div>
+              <span className="text-xs font-semibold text-muted-foreground">
+                Due Date
+              </span>
+              <div className="text-lg">
+                {new Date(task.dueDate).toLocaleDateString()}
+              </div>
             </div>
           </div>
         </div>
-        {/* Report */}
-        <div className="bg-card p-8 rounded-2xl border mt-6 border-l-4 border-academe-500">
-          <h2 className="text-xl font-bold mb-2">Your Report</h2>
-          <MyReportViewer taskId={task.id} reload={reloadReports} />
-          {task.status !== "completed" && (
-            <div className="mt-4">
-              <ReportForm
-                taskId={task.id}
-                onReportCreated={handleReload}
-              />
+        {/* Report & Upload File Tabs - Full width, chia đều */}
+        <Tabs defaultValue="report" className="w-full">
+          <TabsList className="mb-4 grid grid-cols-2 w-full">
+            <TabsTrigger value="report" className="w-full">
+              Report
+            </TabsTrigger>
+            <TabsTrigger value="files" className="w-full">
+              Upload File
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="report">
+            <div className="bg-card p-8 rounded-2xl border border-l-4 border-academe-500">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xl font-bold">
+                  {task.assignee && task.assignee.length > 0
+                    ? `${task.assignee[0].name}'s Report`
+                    : "Report"}
+                </h2>
+                <ReportForm taskId={task.id} onReportCreated={handleReload} />
+              </div>
+              <MyReportViewer taskId={task.id} reload={reloadReports} />
             </div>
-          )}
-        </div>
+          </TabsContent>
+          <TabsContent value="files">
+            <div className="bg-card p-8 rounded-2xl border border-l-4 border-academe-500">
+              <TaskFileTab taskId={task.id} />
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

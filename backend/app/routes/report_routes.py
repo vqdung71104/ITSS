@@ -31,6 +31,7 @@ async def create_report(report: ReportCreate, current_user: User = Depends(get_c
 
     new_report = Report(
         content=report.content,
+        title=report.title,
         student=Link(current_user, document_class=User),
         task=Link(task, document_class=Task)
     )
@@ -76,31 +77,34 @@ async def get_reports(report_id: str, current_user: User = Depends(get_current_u
     except Exception as e:
         logger.error(f"Error fetching report: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
-
-@router.get("/", response_model=list[ReportResponse],
-             description="Get all reports. Only the admin can view all reports.",
-            summary="Get all reports"
-)
+@router.get("/", response_model=list[dict],
+                     description="Get all reports. Only the admin can view all reports.",
+                    summary="Get all reports"
+        )
 async def get_all_reports(current_user: User = Depends(get_current_user),
-                          skip: int=Query(0, ge=0, description="Number of reports to skip"), 
-                          limit: int=Query(10, le=100, description="Maximum number of reports to return")):
-    try:
-        reports = await Report.find_all().skip(skip).limit(limit).to_list()
-        results= []
-        for report in reports:
-            task = await report.task.fetch() if isinstance(report.task, Link) else report.task
-            results.append(ReportResponse(
-                id=report.id,
-                content=report.content,
-                task={"id": str(task.id), "title": task.title, "deadline": task.deadline},
-                created_at=report.created_at
-            ))
+                                  skip: int=Query(0, ge=0, description="Number of reports to skip"), 
+                                  limit: int=Query(10, le=100, description="Maximum number of reports to return")):
+            try:
+                reports = await Report.find_all().skip(skip).limit(limit).to_list()
+                results = []
+                for report in reports:
+                    task = await report.task.fetch() if isinstance(report.task, Link) else report.task
+                    results.append({
+                        "id": str(report.id),
+                        "title": report.title,
+                        "content": report.content,
+                        "task": {
+                            "id": str(task.id),
+                            "title": task.title,
+                            "deadline": task.deadline
+                        } if task else None,
+                        "created_at": report.created_at
+                    })
+            except Exception as e:
+                logger.error(f"Error fetching reports: {str(e)}")
+                raise HTTPException(status_code=500, detail="Internal server error")
 
-    except Exception as e:
-        logger.error(f"Error fetching reports: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-    return results
+            return results
 
 @router.put("/{report_id}", response_model=ReportResponse,
             description="Update a report by ID. Only the student who created the report can update it.",
